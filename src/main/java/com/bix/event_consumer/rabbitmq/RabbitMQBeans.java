@@ -1,5 +1,6 @@
 package com.bix.event_consumer.rabbitmq;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -17,7 +18,7 @@ public class RabbitMQBeans {
 
     @Bean
     public Queue matchesQueue(){
-        return new Queue(this.rabbitMQConfig.getExchange());
+        return new Queue(this.rabbitMQConfig.getQueue());
     }
 
     @Bean
@@ -37,7 +38,7 @@ public class RabbitMQBeans {
     }
 
     @Bean
-    public MessageConverter messageConverter(){
-        return new Jackson2JsonMessageConverter();
+    public MessageConverter messageConverter(ObjectMapper objectMapper){
+        return new Jackson2JsonMessageConverter(objectMapper);
     }
 }
