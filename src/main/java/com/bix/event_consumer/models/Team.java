@@ -17,12 +17,14 @@ public class Team {
     private String eventId;
     private String name;
     private String abbreviation;
+    private Integer conferenceId;
+    private Integer divisionId;
+    private Integer ranking;
+    private String record;
     private Boolean isAway;
     private Boolean isHome;
-    private String record;
-    private int sportId;
-    private int conferenceId;
-    private String leagueName;
+    private Conference conference;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -12,12 +12,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 public class Score {
-    private Integer id;
+    // This should be the outcome tables
+    private Integer scoreId;
     private String eventId;
     private String eventStatus;
     private String eventStatusDetail;
-    private Integer awayTeamId;
-    private Integer homeTeamId;
+    private Integer teamIdAway;
+    private Integer teamIdHome;
     private int winnerAway;
     private int winnerHome;
     private int scoreAway;
@@ -25,6 +26,8 @@ public class Score {
     private int gameClock;
     private int gamePeriod;
     private String broadcast;
+    private String venueName;
+    private String venueLocation;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

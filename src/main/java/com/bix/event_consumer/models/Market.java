@@ -13,15 +13,16 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Market {
+    // This should be the market table
     private Integer id;
-    private Integer rundownMarketId;
-    private int marketTypeId;
+    private Integer marketId;
     private int periodId;
     private String name;
-    private String description;
-    private String eventId;
+    private String marketDescription;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private String eventId;
 
     private List<Participant> participants;
 }

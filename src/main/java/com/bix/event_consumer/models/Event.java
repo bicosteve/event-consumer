@@ -13,19 +13,18 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class Event {
+    // This should be the events table
     private Integer id;
     private String eventId;
+    private String eventUuid;
     private Integer sportId;
     private LocalDateTime eventDate;
-    private String venueName;
-    private String venueLocation;
-    private String seasonType;
-    private Integer seasonYear;
-    private String status;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     private Score score;
     private List<Team> teams;
+    private Schedule schedule;
     private List<Market> markets;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

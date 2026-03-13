@@ -5,17 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
 
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Participant {
-    private Integer id;
-    private String type;
-    private String name;
-
-    private List<Line> lines;
+@Data
+public class Line {
+    private String id;
+    private String value;
+    private Map<String,Price> prices;
 }

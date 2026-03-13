@@ -5,17 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Participant {
-    private Integer id;
-    private String type;
+public class Conference {
+    private Integer conferenceId;
+    private Integer sportId;
     private String name;
-
-    private List<Line> lines;
 }

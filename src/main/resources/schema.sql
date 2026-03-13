@@ -1,13 +1,12 @@
 CREATE TABLE IF NOT EXISTS events(
     id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
     event_id            VARCHAR(200) UNIQUE NOT NULL,
+    event_uuid          VARCHAR(200) NOT NULL,
     sport_id            INT NOT NULL,
     event_date          TIMESTAMP NOT NULL,
-    venue_name          VARCHAR(255),
-    venue_location      VARCHAR(255),
     season_type         VARCHAR(255),
-    season_year         INT,
-    status              VARCHAR(50) NOT NULL,
+    season_year         INT NOT NULL,
+    event_status        VARCHAR(50) NOT NULL,
     created_at          TIMESTAMP DEFAULT NOW(),
     updated_at          TIMESTAMP DEFAULT NOW()
 );
