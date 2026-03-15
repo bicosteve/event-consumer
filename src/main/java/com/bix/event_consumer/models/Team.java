@@ -1,5 +1,6 @@
 package com.bix.event_consumer.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,9 +13,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 public class Team {
+    @JsonIgnore
     private Integer id;
+
     private Integer teamId;
+
+    @JsonIgnore
     private String eventId;
+
     private String name;
     private String abbreviation;
     private Integer conferenceId;
@@ -25,6 +31,9 @@ public class Team {
     private Boolean isHome;
     private Conference conference;
 
+    @JsonIgnore
     private LocalDateTime createdAt;
+
+    @JsonIgnore
     private LocalDateTime updatedAt;
 }

@@ -1,5 +1,6 @@
 package com.bix.event_consumer.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,9 +20,14 @@ public class Market {
     private int periodId;
     private String name;
     private String marketDescription;
+
+    @JsonIgnore
     private LocalDateTime createdAt;
+
+    @JsonIgnore
     private LocalDateTime updatedAt;
 
+    @JsonIgnore
     private String eventId;
 
     private List<Participant> participants;

@@ -1,0 +1,9 @@
+RUNDOWN EVENT_STATUS
+STATUS_SCHEDULED,The game is scheduled but has not yet started. 0
+STATUS_IN_PROGRESS,The game is currently live. 1
+STATUS_FINAL,The game has concluded normally. 2
+STATUS_HALFTIME,The game is currently in its halftime break. 3
+STATUS_POSTPONED,The game has been moved to a later date or time. 4
+STATUS_CANCELED,The game has been canceled and will not be played. 5
+STATUS_DELAYED,"The game is temporarily held up (e.g., weather or lighting delay)." 6
+STATUS_END_PERIOD,"The current period (quarter or half) has ended, but the game is not yet final." 7

@@ -1,5 +1,7 @@
 package com.bix.event_consumer.models;
 
+import com.bix.event_consumer.enums.EventStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,9 +15,11 @@ import java.time.LocalDateTime;
 @Builder
 public class Score {
     // This should be the outcome tables
-    private Integer scoreId;
+    @JsonIgnore
+    private Long scoreId;
+
     private String eventId;
-    private String eventStatus;
+    private EventStatus eventStatus;
     private String eventStatusDetail;
     private Integer teamIdAway;
     private Integer teamIdHome;
@@ -28,6 +32,9 @@ public class Score {
     private String broadcast;
     private String venueName;
     private String venueLocation;
+
+    @JsonIgnore
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 }
