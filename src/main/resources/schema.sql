@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS rundown_event(
 
 CREATE TABLE IF NOT EXISTS scores(
     id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
-    event_id            VARCHAR(100) NOT NULL,
+    event_id            VARCHAR(100) NOT NULL UNIQUE,
     event_status        TINYINT NOT NULL DEFAULT 0,
     event_status_detail VARCHAR(255),
     team_id_away        INT,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS scores(
 CREATE TABLE IF NOT EXISTS teams(
     id              BIGINT PRIMARY KEY AUTO_INCREMENT,
     team_id         INT NOT NULL,
-    event_id        VARCHAR(100) NOT NULL,
+    event_id        VARCHAR(100) NOT NULL UNIQUE,
     name            VARCHAR(255) NOT NULL,
     mascot          VARCHAR(255),
     abbreviation    VARCHAR(50),
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS markets(
     period_id           INT,
     name                VARCHAR(255) NOT NULL,
     description         VARCHAR(255),
-    event_id            VARCHAR(100) NOT NULL,
+    event_id            VARCHAR(100) NOT NULL UNIQUE,
     created_at          TIMESTAMP DEFAULT NOW(),
     updated_at          TIMESTAMP DEFAULT NOW(),
     FOREIGN KEY (event_id) REFERENCES rundown_event(event_id)

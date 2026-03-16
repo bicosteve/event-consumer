@@ -24,10 +24,10 @@ public class Event {
     private Integer sportId;
     private LocalDateTime eventDate;
 
-    private Score score;
     private List<Team> teams;
-    private Schedule schedule;
     private List<Market> markets;
+    private Score score;
+    private Schedule schedule;
 
     @JsonIgnore
     private LocalDateTime createdAt;
