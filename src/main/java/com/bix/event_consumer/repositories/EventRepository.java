@@ -15,6 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class EventRepository {
     private final JdbcTemplate jdbcTemplate;
     private final ScoreRepository scoreRepository;
+    private final TeamRepository teamRepository;
+    private final MarketsRepository marketsRepository;
+    private final ParticipantRepository participantRepository;
+    private Long marketId;
 
     @Transactional
     public void updateEvent(Event event){
@@ -59,6 +63,7 @@ public class EventRepository {
 
 
 
+        // 03. Insert event
         log.info("ConsumerRepo::event {}",event);
         this.jdbcTemplate.update(
                 query,
@@ -73,7 +78,40 @@ public class EventRepository {
                 status != null ? status.getCode() : 0
         );
 
-        this.scoreRepository.insertScore(event.getScore());
+        // 04. Insert Teams
+        if(event.getTeams() != null){
+            event.getTeams().forEach(team ->{
+                team.setEventId(event.getEventId());
+                this.teamRepository.addTeam(team);
+            });
+        }
+
+        // 05. Insert the markets
+        if(event.getMarkets() != null){
+            event.getMarkets().forEach(market -> {
+                market.setEventId(event.getEventId());
+                this.marketId = this.marketsRepository.addMarket(market);
+            });
+        }
+
+        // 06. Add Participant
+        if(event.getMarkets() != null){
+            event.getMarkets().forEach(market -> {
+                if(market.getParticipants() != null){
+                    market.getParticipants().forEach(participant -> {
+                        participant.setMarketId(this.marketId.intValue());
+                        this.participantRepository.addParticipant(participant);
+                    });
+                }
+            });
+        }
+
+
+        // 07. Add Scores
+        if(event.getScore() != null){
+            this.scoreRepository.insertScore(event.getScore());
+        }
+
 
         log.info("");
 

@@ -69,16 +69,15 @@ CREATE TABLE IF NOT EXISTS markets(
     FOREIGN KEY (event_id) REFERENCES rundown_event(event_id)
 );
 
-CREATE TABLE IF NOT EXISTS participants (
+CREATE TABLE IF NOT EXISTS participants(
     participant_id      BIGINT PRIMARY KEY AUTO_INCREMENT,
     rundown_id          INT,
-    market_id           BIGINT NOT NULL,
-    name                VARCHAR(255),
     type                VARCHAR(100),
+    name                VARCHAR(255),
+    market_id           BIGINT NOT NULL UNIQUE,
     created_at          TIMESTAMP DEFAULT NOW(),
     updated_at          TIMESTAMP DEFAULT NOW(),
-    FOREIGN KEY (market_id) REFERENCES markets(id),
-    UNIQUE (rundown_id, market_id)
+    FOREIGN KEY (market_id) REFERENCES markets(id)
 );
 
 CREATE TABLE IF NOT EXISTS prices (

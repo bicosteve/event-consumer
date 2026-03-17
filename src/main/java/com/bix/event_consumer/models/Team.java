@@ -22,6 +22,7 @@ public class Team {
     private String eventId;
 
     private String name;
+    private String mascot;
     private String abbreviation;
     private Integer conferenceId;
     private Integer divisionId;
