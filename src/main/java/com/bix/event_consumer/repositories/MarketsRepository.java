@@ -78,12 +78,8 @@ public class MarketsRepository {
     }
 
     private Long queryForMarketId(Integer marketRundownId, String eventId){
-        return this.jdbcTemplate.queryForObject(
-                "SELECT id FROM markets WHERE market_rundown_id = ? ANd event_id ?",
-                Long.class,
-                marketRundownId,
-                eventId
-        );
+        String q = "SELECT id FROM markets WHERE market_rundown_id = ? ANd event_id ?";
+        return this.jdbcTemplate.queryForObject(q, Long.class, marketRundownId, eventId);
     }
 
 }

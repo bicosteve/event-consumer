@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS participants(
 
 CREATE TABLE IF NOT EXISTS prices (
     price_id            BIGINT PRIMARY KEY AUTO_INCREMENT,
-    rundown_id          VARCHAR(100),
+    rundown_id          VARCHAR(100) NOT NULL UNIQUE,
     price               INT,
     price_delta         INT,
     is_main_line        BOOLEAN,

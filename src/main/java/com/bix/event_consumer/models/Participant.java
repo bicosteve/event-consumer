@@ -22,7 +22,7 @@ public class Participant {
     private String name;
 
     @JsonIgnore
-    private Integer marketId;
+    private Long marketId;
 
     private List<Line> lines;
 

@@ -43,7 +43,7 @@ public class Price {
     }
 
     @JsonIgnore
-    private Integer participantId;
+    private Long participantId;
     @JsonIgnore
     private Integer bookMarkerId; // this is the price key
     @JsonIgnore

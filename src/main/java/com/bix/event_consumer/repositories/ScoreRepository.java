@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 public class ScoreRepository {
     private final JdbcTemplate jdbcTemplate;
 
-    public void insertScore(Score score){
+    public void addScores(Score score){
         log.info("ScoreRepository::attempting to insert Score for event {}", score.getEventId());
         String sql = """
                 INSERT INTO scores(
