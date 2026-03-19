@@ -30,10 +30,10 @@ public class EventRepository {
                 event.getEventId()
         );
 
-        // Get the status from score before inserting
+        // a. Get the status from score before inserting
         EventStatus status = event.getScore() != null ? event.getScore().getEventStatus() : null;
 
-        // 02. Get schedule fields safely
+        // b. Get schedule fields safely
         Schedule schedule = event.getSchedule();
         String seasonType = schedule != null ? schedule.getSeasonType() : null;
         Integer seasonYear = schedule != null ? schedule.getSeasonYear() : null;
@@ -67,7 +67,7 @@ public class EventRepository {
                 """;
 
 
-        // 03. Insert then event
+        // c. Then insert the event
         log.info("ConsumerRepo::event {}",event);
         this.jdbcTemplate.update(
                 query,

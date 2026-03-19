@@ -29,15 +29,15 @@ public class PriceRepository {
                     created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                 ON DUPLICATE KEY UPDATE
-                    price               = VALUES(price)
-                    price_delta         = VALUES(price_delta)
-                    is_main_line        = VALUES(is_main_line)
-                    odds                = VALUES(odds)
-                    participant_id      = VALUES(participant_id)
-                    bookmaker_id        = VALUES(bookmaker_id)
-                    handicap_value      = VALUES(handicap_value)
-                    line_id             = VALUES(line_id)
-                    closed_at           = VALUES(closed_at)
+                    price               = VALUES(price),
+                    price_delta         = VALUES(price_delta),
+                    is_main_line        = VALUES(is_main_line),
+                    odds                = VALUES(odds),
+                    participant_id      = VALUES(participant_id),
+                    bookmaker_id        = VALUES(bookmaker_id),
+                    handicap_value      = VALUES(handicap_value),
+                    line_id             = VALUES(line_id),
+                    closed_at           = VALUES(closed_at),
                     updated_at          = VALUES(updated_at)
                 """;
         log.info(

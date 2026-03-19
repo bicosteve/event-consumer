@@ -45,18 +45,17 @@ public class TeamRepository {
                     updated_at
                 ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE
-                    team_id             = VALUES(team_id)
-                    name                = VALUES(name)
-                    mascot              = VALUES(mascot)
-                    abbreviation        = VALUES(abbreviation)
-                    is_home             = VALUES(is_home)
-                    is_away             = VALUES(is_away)
-                    record              = VALUES(record)
-                    conference_id       = VALUES(conference_id)
-                    division_id         = VALUES(division_id)
-                    ranking             = VALUES(ranking)
-                    league_name         = VALUES(league_name)
-                    update              = NOW()
+                    name                = VALUES(name),
+                    mascot              = VALUES(mascot),
+                    abbreviation        = VALUES(abbreviation),
+                    is_home             = VALUES(is_home),
+                    is_away             = VALUES(is_away),
+                    record              = VALUES(record),
+                    conference_id       = VALUES(conference_id),
+                    division_id         = VALUES(division_id),
+                    ranking             = VALUES(ranking),
+                    league_name         = VALUES(league_name),
+                    updated_at          = NOW()
                 """;
         this.jdbcTemplate.update(
                 sql,

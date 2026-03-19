@@ -34,19 +34,19 @@ public class ScoreRepository {
                     updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE
-                    event_status            = VALUES(event_status)
-                    event_status_detail     = VALUES(event_status_detail)
-                    team_id_away            = VALUES(team_id_away)
-                    team_id_home            = VALUES(team_id_home)
-                    winner_away             = VALUES(winner_away)
-                    winner_home             = VALUES(winner_home)
-                    score_away              = VALUES(score_away)
-                    score_home              = VALUES(score_home)
-                    game_clock              = VALUES(game_clock)
-                    game_period             = VALUES(game_period)
-                    broadcast               = VALUES(broadcast)
-                    venue_name              = VALUES(venue_name)
-                    venue_location          = VALUES(venue_location)
+                    event_status            = VALUES(event_status),
+                    event_status_detail     = VALUES(event_status_detail),
+                    team_id_away            = VALUES(team_id_away),
+                    team_id_home            = VALUES(team_id_home),
+                    winner_away             = VALUES(winner_away),
+                    winner_home             = VALUES(winner_home),
+                    score_away              = VALUES(score_away),
+                    score_home              = VALUES(score_home),
+                    game_clock              = VALUES(game_clock),
+                    game_period             = VALUES(game_period),
+                    broadcast               = VALUES(broadcast),
+                    venue_name              = VALUES(venue_name),
+                    venue_location          = VALUES(venue_location),
                     updated_at              = NOW()
                 """;
 

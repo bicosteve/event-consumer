@@ -33,9 +33,9 @@ public class ParticipantRepository {
                     updated_at
                 ) VALUES (?, ?, ?, ?, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE
-                    rundown_id      = VALUES(rundown_id)
-                    type            = VALUES(type)
-                    name            = VALUES(name)
+                    rundown_id      = VALUES(rundown_id),
+                    type            = VALUES(type),
+                    name            = VALUES(name),
                     updated_at      = NOW()
                 """;
 

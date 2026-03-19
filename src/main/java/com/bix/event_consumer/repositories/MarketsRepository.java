@@ -36,11 +36,11 @@ public class MarketsRepository {
                     updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE
-                    market_rundown_id       = VALUES(market_rundown_id)
-                    market_type_id          = VALUES(market_type_id)
-                    period_id               = VALUES(period_id)
-                    name                    = VALUES(name)
-                    description             = VALUES(description)
+                    market_rundown_id       = VALUES(market_rundown_id),
+                    market_type_id          = VALUES(market_type_id),
+                    period_id               = VALUES(period_id),
+                    name                    = VALUES(name),
+                    description             = VALUES(description),
                     updated_at              = NOW()
                 """;
 
