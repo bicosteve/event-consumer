@@ -14,6 +14,40 @@ CREATE TABLE IF NOT EXISTS rundown_event(
 );
 
 
+CREATE TABLE IF NOT EXISTS teams(
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    team_id         INT NOT NULL UNIQUE,
+    event_id        VARCHAR(100) NOT NULL,
+    name            VARCHAR(255) NOT NULL,
+    mascot          VARCHAR(255),
+    abbreviation    VARCHAR(50),
+    is_home         BOOLEAN NOT NULL,
+    is_away         BOOLEAN NOT NULL,
+    record          VARCHAR(50),
+    conference_id   INT,
+    division_id     INT,
+    ranking         INT,
+    league_name     VARCHAR(255),
+    created_at      TIMESTAMP DEFAULT NOW(),
+    updated_at      TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
+    UNIQUE (team_id, event_id)
+);
+
+CREATE TABLE IF NOT EXISTS markets(
+    id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
+    market_rundown_id   INT NOT NULL UNIQUE,
+    market_type_id      INT NOT NULL,
+    period_id           INT,
+    name                VARCHAR(255) NOT NULL,
+    description         VARCHAR(255),
+    event_id            VARCHAR(100) NOT NULL,
+    created_at          TIMESTAMP DEFAULT NOW(),
+    updated_at          TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id)
+);
+
+
 CREATE TABLE IF NOT EXISTS scores(
     id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
     event_id            VARCHAR(100) NOT NULL UNIQUE,
@@ -35,49 +69,16 @@ CREATE TABLE IF NOT EXISTS scores(
     FOREIGN KEY (event_id) REFERENCES rundown_event(event_id)
 );
 
-CREATE TABLE IF NOT EXISTS teams(
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    team_id         INT NOT NULL,
-    event_id        VARCHAR(100) NOT NULL UNIQUE,
-    name            VARCHAR(255) NOT NULL,
-    mascot          VARCHAR(255),
-    abbreviation    VARCHAR(50),
-    is_home         BOOLEAN NOT NULL,
-    is_away         BOOLEAN NOT NULL,
-    record          VARCHAR(50),
-    conference_id   INT,
-    division_id     INT,
-    ranking         INT,
-    league_name     VARCHAR(255),
-    created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW(),
-    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
-    UNIQUE (team_id, event_id)
-);
-
-
-CREATE TABLE IF NOT EXISTS markets(
-    id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
-    market_rundown_id   INT NOT NULL,
-    market_type_id      INT NOT NULL,
-    period_id           INT,
-    name                VARCHAR(255) NOT NULL,
-    description         VARCHAR(255),
-    event_id            VARCHAR(100) NOT NULL UNIQUE,
-    created_at          TIMESTAMP DEFAULT NOW(),
-    updated_at          TIMESTAMP DEFAULT NOW(),
-    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id)
-);
-
 CREATE TABLE IF NOT EXISTS participants(
     participant_id      BIGINT PRIMARY KEY AUTO_INCREMENT,
     rundown_id          INT,
     type                VARCHAR(100),
     name                VARCHAR(255),
-    market_id           BIGINT NOT NULL UNIQUE,
+    market_id           BIGINT NOT NULL,
     created_at          TIMESTAMP DEFAULT NOW(),
     updated_at          TIMESTAMP DEFAULT NOW(),
-    FOREIGN KEY (market_id) REFERENCES markets(id)
+    FOREIGN KEY (market_id) REFERENCES markets(id),
+    UNIQUE(rundown_id,market_id)
 );
 
 CREATE TABLE IF NOT EXISTS prices (

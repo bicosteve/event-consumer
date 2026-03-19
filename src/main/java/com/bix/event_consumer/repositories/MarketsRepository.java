@@ -9,14 +9,12 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 
 @Repository
 @RequiredArgsConstructor
 @Slf4j
 public class MarketsRepository {
     private final JdbcTemplate jdbcTemplate;
-    private Long generatedId;
 
     public Long addMarket(Market market){
         log.info(
@@ -36,20 +34,20 @@ public class MarketsRepository {
                     updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE
-                    market_rundown_id       = VALUES(market_rundown_id),
                     market_type_id          = VALUES(market_type_id),
                     period_id               = VALUES(period_id),
                     name                    = VALUES(name),
                     description             = VALUES(description),
+                    event_id                = VALUES(event_id),
                     updated_at              = NOW()
                 """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
+        Long generatedId;
 
         this.jdbcTemplate.update( connection -> {
                     PreparedStatement ps = connection.prepareStatement(
-                           sql,
-                            Statement.RETURN_GENERATED_KEYS
+                           sql,new String[]{"id"}
                     );
                     ps.setInt(1, market.getId());
                     ps.setInt(2,market.getMarketId());
@@ -65,20 +63,20 @@ public class MarketsRepository {
         // Get the generated market_id
         if(keyHolder.getKey() != null && keyHolder.getKey().longValue() > 0){
             // On fresh insert, we will get market_id from the KeyHolder
-            this.generatedId = keyHolder.getKey().longValue();
+            generatedId = keyHolder.getKey().longValue();
         } else {
             // On DUPLICATE KEY UPDATE, we query for existing id
             // this is done since on duplicate, the KeyHolder returns 0 as market_id
-            this.generatedId = this.queryForMarketId(market.getId(), market.getEventId());
+            generatedId = this.queryForMarketId(market.getId(), market.getEventId());
         }
 
-        log.info("MarketRepo::market {} inserted with id {}", market.getId(),this.generatedId);
+        log.info("MarketRepo::market {} inserted with id {}", market.getId(),generatedId);
 
-        return this.generatedId;
+        return generatedId;
     }
 
     private Long queryForMarketId(Integer marketRundownId, String eventId){
-        String q = "SELECT id FROM markets WHERE market_rundown_id = ? ANd event_id ?";
+        String q = "SELECT id FROM markets WHERE market_rundown_id = ? AND event_id = ?";
         return this.jdbcTemplate.queryForObject(q, Long.class, marketRundownId, eventId);
     }
 

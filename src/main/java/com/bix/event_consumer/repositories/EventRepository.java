@@ -26,7 +26,7 @@ public class EventRepository {
     // 01. Insert event
     private void insertEvent(Event event){
         log.info(
-                "EventRepository::Attempt to insert event with details {}",
+                "EventRepository::Attempting to insert event with details {}",
                 event.getEventId()
         );
 
@@ -68,7 +68,7 @@ public class EventRepository {
 
 
         // c. Then insert the event
-        log.info("ConsumerRepo::event {}",event);
+        log.info("ConsumerRepo::event {}",event.getEventId());
         this.jdbcTemplate.update(
                 query,
                 event.getEventId(),

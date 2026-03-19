@@ -9,7 +9,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 
 @Repository
 @RequiredArgsConstructor
@@ -20,7 +19,7 @@ public class ParticipantRepository {
     public Long addParticipant(Participant participant){
         log.info(
                 "ParticipantRepo::attempting to add participant {}",
-                participant.getParticipantId()
+                participant.getId()
         );
 
         String sql = """
@@ -43,7 +42,7 @@ public class ParticipantRepository {
 
         this.jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
-                    sql, Statement.RETURN_GENERATED_KEYS
+                    sql, new String[]{"participant_id"}
             );
             ps.setInt(1, participant.getId());
             ps.setString(2, participant.getType());
@@ -56,7 +55,7 @@ public class ParticipantRepository {
         if(keyHolder.getKey() != null && keyHolder.getKey().longValue() > 0){
             generatedId = keyHolder.getKey().longValue();
         } else {
-            generatedId = this.queryParticipantId(participant.getId(),Long.valueOf(participant.getMarketId()));
+            generatedId = this.queryParticipantId(participant.getId(),participant.getMarketId());
         }
 
         log.info(
