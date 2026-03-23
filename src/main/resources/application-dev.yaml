@@ -22,7 +22,7 @@ spring:
 
   sql:
     init:
-      mode: always
+      mode: ${DB_MODE}
       data-locations: classpath:schema.sql
 
       platform: h2

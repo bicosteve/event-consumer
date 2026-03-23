@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS rundown_event(
     event_headline      VARCHAR(255),
     event_status        TINYINT DEFAULT 0,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+    CURRENT_TIMESTAMP,
+    INDEX idx_rundown_event_event_id_id (event_id,id)
 );
 
 
@@ -31,7 +33,9 @@ CREATE TABLE IF NOT EXISTS teams(
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
-    UNIQUE (team_id, event_id)
+    UNIQUE (team_id, event_id),
+    INDEX idx_teams_team_id_id (team_id,id)
+
 );
 
 CREATE TABLE IF NOT EXISTS markets(
@@ -44,7 +48,8 @@ CREATE TABLE IF NOT EXISTS markets(
     event_id            VARCHAR(100) NOT NULL,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id)
+    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
+    INDEX idx_markets_market_rundown_id_id (market_id,id)
 );
 
 
@@ -66,7 +71,8 @@ CREATE TABLE IF NOT EXISTS scores(
     venue_location      VARCHAR(255),
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id)
+    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
+    INDEX idx_scores_event_id (event_id)
 );
 
 CREATE TABLE IF NOT EXISTS participants(
@@ -78,7 +84,8 @@ CREATE TABLE IF NOT EXISTS participants(
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (market_id) REFERENCES markets(id),
-    UNIQUE(rundown_id,market_id)
+    UNIQUE(rundown_id,market_id),
+    INDEX idx_participants_rundown_id (rundown_id)
 );
 
 CREATE TABLE IF NOT EXISTS prices (
@@ -93,31 +100,9 @@ CREATE TABLE IF NOT EXISTS prices (
     handicap_value      VARCHAR(50),
     line_id             VARCHAR(100),
     closed_at           DATETIME,
-    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (participant_id) REFERENCES participants(participant_id)
+    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+    CURRENT_TIMESTAMP,
+    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (participant_id) REFERENCES participants(participant_id),
+    INDEX idx_prices_rundown_id_participant_id (rundown_id,participant_id)
 );
-
--- rundown_event indexes
-CREATE INDEX IF NOT EXISTS idx_rundown_event_event_id_id
-    ON rundown_event(event_id, id);
-
--- scores indexes
-CREATE INDEX IF NOT EXISTS idx_scores_event_id
-    ON scores(event_id);
-
--- teams indexes
-CREATE INDEX IF NOT EXISTS idx_teams_team_id_id
-    ON teams(team_id, id);
-
--- markets indexes
-CREATE INDEX IF NOT EXISTS idx_markets_market_rundown_id_id
-    ON markets(market_rundown_id, id);
-
--- participants indexes
-CREATE INDEX IF NOT EXISTS idx_participants_rundown_id
-    ON participants(rundown_id);
-
--- prices indexes
-CREATE INDEX IF NOT EXISTS idx_prices_rundown_id_participant_id
-    ON prices(rundown_id, participant_id);
