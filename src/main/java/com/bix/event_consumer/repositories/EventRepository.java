@@ -53,16 +53,16 @@ public class EventRepository {
                     event_status,
                     created_at,
                     updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) AS new_event
                 ON DUPLICATE KEY UPDATE
-                    event_uuid      = VALUES(event_uuid),
-                    sport_id        = VALUES(sport_id),
-                    event_date      = VALUES(event_date),
-                    season_type     = VALUES(season_type),
-                    season_year     = VALUES(season_year),
-                    event_name      = VALUES(event_name),
-                    event_headline  = VALUES(event_headline),
-                    event_status    = VALUES(event_status),
+                    event_uuid      = new_event.event_uuid,
+                    sport_id        = new_event.sport_id,
+                    event_date      = new_event.event_date,
+                    season_type     = new_event.season_type,
+                    season_year     = new_event.season_year,
+                    event_name      = new_event.event_name,
+                    event_headline  = new_event.event_headline,
+                    event_status    = new_event.event_status,
                     updated_at      = NOW()
                 """;
 

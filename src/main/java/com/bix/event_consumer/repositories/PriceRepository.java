@@ -27,18 +27,18 @@ public class PriceRepository {
                     closed_at,
                     updated_at,
                     created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW()) AS new_price
                 ON DUPLICATE KEY UPDATE
-                    price               = VALUES(price),
-                    price_delta         = VALUES(price_delta),
-                    is_main_line        = VALUES(is_main_line),
-                    odds                = VALUES(odds),
-                    participant_id      = VALUES(participant_id),
-                    bookmaker_id        = VALUES(bookmaker_id),
-                    handicap_value      = VALUES(handicap_value),
-                    line_id             = VALUES(line_id),
-                    closed_at           = VALUES(closed_at),
-                    updated_at          = VALUES(updated_at)
+                    price               = new_price.price,
+                    price_delta         = new_price.price_delta,
+                    is_main_line        = new_price.is_main_line,
+                    odds                = new_price.odds,
+                    participant_id      = new_price.participant_id,
+                    bookmaker_id        = new_price.bookmaker_id,
+                    handicap_value      = new_price.handicap_value,
+                    line_id             = new_price.line_id,
+                    closed_at           = new_price.closed_at,
+                    updated_at          = new_price.updated_at
                 """;
         log.info(
                 "PriceRepository::Attempting to add price {} - query {}",

@@ -32,21 +32,21 @@ public class ScoreRepository {
                     venue_location,
                     created_at,
                     updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) AS new_score
                 ON DUPLICATE KEY UPDATE
-                    event_status            = VALUES(event_status),
-                    event_status_detail     = VALUES(event_status_detail),
-                    team_id_away            = VALUES(team_id_away),
-                    team_id_home            = VALUES(team_id_home),
-                    winner_away             = VALUES(winner_away),
-                    winner_home             = VALUES(winner_home),
-                    score_away              = VALUES(score_away),
-                    score_home              = VALUES(score_home),
-                    game_clock              = VALUES(game_clock),
-                    game_period             = VALUES(game_period),
-                    broadcast               = VALUES(broadcast),
-                    venue_name              = VALUES(venue_name),
-                    venue_location          = VALUES(venue_location),
+                    event_status            = new_score.event_status,
+                    event_status_detail     = new_score.event_status_detail,
+                    team_id_away            = new_score.team_id_away,
+                    team_id_home            = new_score.team_id_home,
+                    winner_away             = new_score.winner_away,
+                    winner_home             = new_score.winner_home,
+                    score_away              = new_score.score_away,
+                    score_home              = new_score.score_home,
+                    game_clock              = new_score.game_clock,
+                    game_period             = new_score.game_period,
+                    broadcast               = new_score.broadcast,
+                    venue_name              = new_score.venue_name,
+                    venue_location          = new_score.venue_location,
                     updated_at              = NOW()
                 """;
 
