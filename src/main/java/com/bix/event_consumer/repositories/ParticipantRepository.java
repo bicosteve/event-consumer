@@ -9,8 +9,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.util.List;
-import java.util.Map;
 
 @Repository
 @RequiredArgsConstructor
@@ -67,14 +65,7 @@ public class ParticipantRepository {
             generatedId = this.queryParticipantId(participant.getId(),participant.getMarketId());
         }
 
-
-//        List<Map<String, Object>> keyList = keyHolder.getKeyList();
-//
-//        if(keyList.size() == 1){
-//            generatedId = ((Number) keyList.getFirst().get("GENERATED_KEY")).longValue();
-//        } else {
-//            generatedId = this.queryParticipantId(participant.getId(),participant.getMarketId());
-//        }
+        participant.setParticipantId(generatedId.intValue());
 
         log.info(
                 "ParticipantRepo::Added participant {}",

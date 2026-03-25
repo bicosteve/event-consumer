@@ -25,7 +25,6 @@ spring:
       mode: ${DB_MODE}
       data-locations: classpath:schema.sql
 
-      platform: h2
 
   rabbitmq:
     host: ${RABBITMQ_HOST}

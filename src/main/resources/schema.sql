@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS markets(
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
-    INDEX idx_markets_market_rundown_id_id (market_id,id)
+    INDEX idx_markets_market_rundown_id_id (market_rundown_id,id),
+    INDEX idx_markets_market_event_id (event_id)
 );
 
 
@@ -85,7 +86,8 @@ CREATE TABLE IF NOT EXISTS participants(
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (market_id) REFERENCES markets(id),
     UNIQUE(rundown_id,market_id),
-    INDEX idx_participants_rundown_id (rundown_id)
+    INDEX idx_participants_rundown_id(rundown_id),
+    INDEX idx_participants_market_id(market_id)
 );
 
 CREATE TABLE IF NOT EXISTS prices (
