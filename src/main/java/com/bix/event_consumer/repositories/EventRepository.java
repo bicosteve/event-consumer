@@ -87,72 +87,98 @@ public class EventRepository {
 
     // 02. Insert Teams
     private void insertTeams(Event event){
-        if(event.getTeams() != null){
-            event.getTeams().forEach(team ->{
-                team.setEventId(event.getEventId());
-                this.teamRepository.addTeam(team);
-            });
-        } else {
-            log.warn("EventRepository::no teams for event {} ", event.getEventId());
+        if(event.getTeams() == null && event.getTeams().isEmpty()){
+            log.warn("EventRepository::no teams for event {}", event.getEventId());
+            return;
         }
+
+        log.info(
+                "EventRepository::inserting {} teams for event {}",
+                event.getTeams().size(), event.getEventId());
+
+        event.getTeams().forEach(team ->{
+            team.setEventId(event.getEventId());
+            this.teamRepository.addTeam(team);
+        });
+
     }
 
     // 03. Insert Markets
     private void insertMarkets(Event event){
-        if(event.getMarkets() != null){
-            event.getMarkets().forEach(market -> {
-                market.setEventId(event.getEventId());
-
-                Long marketId = this.marketsRepository.addMarket(market);
-
-                this.insertParticipants(market,marketId);
-            });
-        } else {
+        if(event.getMarkets() == null || event.getMarkets().isEmpty()){
             log.warn("EventRepository::no markets for event {}", event.getEventId());
+            return;
         }
+
+        log.info("EventRepository::Inserting {} markets for {} event",
+                event.getMarkets().size(), event.getEventId());
+
+        event.getMarkets().forEach(market -> {
+            market.setEventId(event.getEventId());
+            Long marketId = this.marketsRepository.addMarket(market);
+
+            this.insertParticipants(market,marketId);
+        });
+
     }
 
     // 04. Insert Scores
     private void insertScore(Event event){
-        if(event.getScore() != null){
-            this.scoreRepository.addScores(event.getScore());
-        }else {
-            log.warn("EventRepository::no score for event {}", event.getEventId());
+        if(event.getScore() == null){
+            log.warn("EventRepository::No scores for event {}", event.getEventId());
+            return;
         }
+
+        log.info("EventRepository::Inserting score for event {}", event.getEventId());
+        this.scoreRepository.addScores(event.getScore());
+
     }
 
     // 05. Insert Prices/Odds
     private void insertPrices(Participant participant, Long participantId){
-        if(participant.getLines() != null){
-            participant.getLines().forEach(line -> {
-                // key = 23 which is the  bookmakerId
-                // value = Price(...) the actual price object
 
-                line.getPrices().forEach((bookmakerId, price) ->{
-                    price.setParticipantId(participantId);
-                    price.setBookMarkerId(Integer.parseInt(bookmakerId)); // "23" -> 23
-                    price.setLineId(line.getId());
-                    price.setHandicapValue(line.getValue());
-
-                    this.priceRepository.addPrice(price);
-                });
-            });
-        } else {
-            log.warn("EventRepository::no lines for participant {}", participant.getId());
+        if(participant.getLines() == null || participant.getLines().isEmpty()){
+            log.warn("EventRepository::No prices for participant {}", participant.getParticipantId());
+            return;
         }
+
+        log.info("EventRepository::Inserting prices for participant {}", participant.getParticipantId());
+
+        participant.getLines().forEach(line -> {
+            // key = 23 which is the  bookmakerId
+            // value = Price(...) the actual price object
+
+            line.getPrices().forEach((bookmakerId, price) ->{
+                price.setParticipantId(participantId);
+                price.setBookMarkerId(Integer.parseInt(bookmakerId)); // "23" -> 23
+                price.setLineId(line.getId());
+                price.setHandicapValue(line.getValue());
+
+                this.priceRepository.addPrice(price);
+            });
+        });
+
+
     }
 
     // 06. Insert Participants
     private void insertParticipants(Market market, Long marketId){
-        if(market.getParticipants() != null){
-            market.getParticipants().forEach(participant -> {
-                participant.setMarketId(marketId);
-                Long participantId = this.participantRepository.addParticipant(participant);
-                this.insertPrices(participant,participantId);
-            });
-        }else{
-            log.warn("EventRepository::no participants for market {}", marketId);
+        if(market.getParticipants() == null || market.getParticipants().isEmpty()){
+            log.warn("EventRepository::No participants for market {}", marketId);
+            return;
         }
+
+        log.info("EventRepository::Inserting participants {} for market {}",
+                market.getParticipants().size(),
+                marketId);
+
+        market.getParticipants().forEach(participant -> {
+            participant.setMarketId(marketId);
+            Long participantId = this.participantRepository.addParticipant(participant);
+            this.insertPrices(participant,participantId);
+        });
+
+
     }
 
 
