@@ -87,7 +87,7 @@ public class EventRepository {
 
     // 02. Insert Teams
     private void insertTeams(Event event){
-        if(event.getTeams() == null && event.getTeams().isEmpty()){
+        if(event.getTeams() == null || event.getTeams().isEmpty()){
             log.warn("EventRepository::no teams for event {}", event.getEventId());
             return;
         }
