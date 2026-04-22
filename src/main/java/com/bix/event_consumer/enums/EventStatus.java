@@ -29,7 +29,10 @@ public enum EventStatus {
 
     private final int code;
 
-
+    /*
+    * Used by Jackson for JSON Deserialization
+    * Matches the String name (e.g 'STATUS_FINAL') to the constant
+    * */
     @JsonCreator
     public static EventStatus fromValue(String value){
         for(EventStatus status : values()){
@@ -38,6 +41,19 @@ public enum EventStatus {
             }
         }
         throw new IllegalArgumentException("Unknown event status %s ".formatted(value));
+    }
+
+    /*
+    * Used by JDBC to map the integer column from SQL to Enum constant
+    * */
+    public static EventStatus fromCode(int code){
+        for(EventStatus status : values()){
+            if(status.code == code){
+                return status;
+            }
+        }
+
+        return STATUS_SCHEDULED;
     }
 
 }

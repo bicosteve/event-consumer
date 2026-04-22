@@ -20,12 +20,12 @@ public class RabbitMQBeans {
 
     @Bean
     public Queue matchesQueue(){
-        return new Queue(this.rabbitMQConfig.getQueue());
+        return new Queue(this.rabbitMQConfig.getMatches().getQueue());
     }
 
     @Bean
     public TopicExchange matchesExchange(){
-        return new TopicExchange(this.rabbitMQConfig.getExchange());
+        return new TopicExchange(this.rabbitMQConfig.getMatches().getExchange());
     }
 
     @Bean
@@ -36,7 +36,7 @@ public class RabbitMQBeans {
         return BindingBuilder
                 .bind(matchesQueue)
                 .to(matchesExchange)
-                .with(this.rabbitMQConfig.getRoutingKey());
+                .with(this.rabbitMQConfig.getMatches().getRoutingKey());
     }
 
     @Bean
