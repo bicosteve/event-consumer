@@ -14,7 +14,6 @@ public enum SlipStatus{
 
     private final int status;
 
-
     @JsonCreator
     public static SlipStatus fromValue(String value){
         for(SlipStatus status : values()){
