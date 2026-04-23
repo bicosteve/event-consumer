@@ -9,6 +9,7 @@ import com.bix.event_consumer.repositories.ScoreRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class ResultService{
     private final BetRepository betRepository;
 
 
+    @Transactional
     public void processBetResults(String eventId){
         log.info("ResultService::processing results for event {} ",eventId);
 
@@ -41,7 +43,8 @@ public class ResultService{
         // 03. Evaluate each slip
         pendingSlips.forEach(slip -> {});
 
-
     }
+
+
 
 }
