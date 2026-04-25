@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS rundown_event(
 
 CREATE TABLE IF NOT EXISTS teams(
     id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    team_id         INT NOT NULL UNIQUE,
+    team_id         INT NOT NULL,
     event_id        VARCHAR(100) NOT NULL,
     name            VARCHAR(255) NOT NULL,
     mascot          VARCHAR(255),
