@@ -9,6 +9,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
+import java.util.List;
 
 
 @Repository
@@ -88,7 +89,10 @@ public class MarketsRepository {
 
     private Long queryForMarketId(Integer marketRundownId, String eventId){
         String q = "SELECT id FROM markets WHERE market_rundown_id = ? AND event_id = ?";
-        return this.jdbcTemplate.queryForObject(q, Long.class, marketRundownId, eventId);
+        List<Long> ids = this.jdbcTemplate
+                .query(q,(rs, rowNum) -> rs.getLong("id"), marketRundownId, eventId);
+//        return this.jdbcTemplate.queryForObject(q, Long.class, marketRundownId, eventId); // use this if sure object exists.
+        return ids.isEmpty() ? null : ids.get(0);
     }
 
 }

@@ -22,6 +22,7 @@ public class Slip{
     private String          marketName;
     private String          participantName;
     private BigDecimal      odds;
+    private String          specialBetValue;
     private Integer         status;
     private LocalDateTime   createdAt;
     private LocalDateTime   updatedAt;

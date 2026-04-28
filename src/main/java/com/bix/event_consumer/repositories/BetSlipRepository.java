@@ -30,6 +30,7 @@ public class BetSlipRepository{
                     market_name,
                     participant_name,
                     odds,
+                    special_bet_value,
                     status,
                     created_at,
                     updated_at
@@ -50,6 +51,7 @@ public class BetSlipRepository{
                         .marketName(rs.getString("market_name"))
                         .participantName(rs.getString("participant_name"))
                         .odds(rs.getBigDecimal("odds"))
+                        .specialBetValue(rs.getString("special_bet_value"))
                         .status(rs.getInt("status"))
                         .createdAt(rs.getObject("created_At", LocalDateTime.class))
                         .updatedAt(rs.getObject("updated_at", LocalDateTime.class))
@@ -73,6 +75,7 @@ public class BetSlipRepository{
                     market_name,
                     participant_name,
                     odds,
+                    special_bet_value,
                     status,
                     created_at,
                     updated_at
@@ -92,6 +95,7 @@ public class BetSlipRepository{
                         .marketName(rs.getString("market_name"))
                         .participantName(rs.getString("participant_name"))
                         .odds(rs.getBigDecimal("odds"))
+                        .specialBetValue(rs.getString("special_bet_value"))
                         .status(rs.getInt("status"))
                         .createdAt(rs.getObject("created_at", LocalDateTime.class))
                         .updatedAt(rs.getObject("updated_at", LocalDateTime.class))
