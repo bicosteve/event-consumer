@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS rundown_event(
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_rundown_event_lookup (event_id)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2. Teams Table (Allows multiple teams per event)
 CREATE TABLE IF NOT EXISTS teams(
@@ -32,12 +32,11 @@ CREATE TABLE IF NOT EXISTS teams(
     league_name     VARCHAR(255),
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_teams_event FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
+    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
     UNIQUE KEY uq_team_per_event (event_id, team_id),
     INDEX idx_team_id(team_id),
-    INDEX idx_id(id),
     INDEX idx_event_id(event_id)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 3. Markets Table
 CREATE TABLE IF NOT EXISTS markets(
@@ -50,9 +49,9 @@ CREATE TABLE IF NOT EXISTS markets(
     event_id            VARCHAR(200) NOT NULL,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_markets_event FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
+    FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
     INDEX idx_markets_event (event_id)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4. Scores Table
 CREATE TABLE IF NOT EXISTS scores(
@@ -73,10 +72,10 @@ CREATE TABLE IF NOT EXISTS scores(
     venue_location      VARCHAR(255),
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_scores_event FOREIGN KEY (event_id) REFERENCES rundown_event
-    (event_id),
-    INDEX idx_scores_event_id(event_id)
-);
+    FOREIGN KEY (event_id) REFERENCES rundown_event (event_id),
+    INDEX idx_scores_event_id(event_id),
+    INDEX idx_scores_event_status (event_id, event_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 5. Participants Table
 CREATE TABLE IF NOT EXISTS participants(
@@ -87,9 +86,10 @@ CREATE TABLE IF NOT EXISTS participants(
     market_id           BIGINT NOT NULL,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_participants_market FOREIGN KEY (market_id) REFERENCES markets(id),
+    FOREIGN KEY (market_id) REFERENCES markets(id),
+    UNIQUE KEY uk_participant_market(rundown_id,market_id),
     INDEX idx_participant_market (market_id)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 6. Prices Table
 CREATE TABLE IF NOT EXISTS prices (
@@ -106,9 +106,12 @@ CREATE TABLE IF NOT EXISTS prices (
     closed_at           DATETIME,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_prices_participant FOREIGN KEY (participant_id) REFERENCES participants(participant_id),
-    INDEX idx_prices_rundown (rundown_id)
-);
+    FOREIGN KEY (participant_id) REFERENCES participants (participant_id),
+    UNIQUE KEY uk_line_bookmaker (line_id, bookmaker_id, participant_id),
+    INDEX idx_prices_rundown (rundown_id),
+    INDEX idx_line_id (line_id),
+    INDEX idx_bookmaker_id (bookmaker_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 7. Bets Table
 CREATE TABLE IF NOT EXISTS bets(
@@ -141,6 +144,7 @@ CREATE TABLE IF NOT EXISTS bet_slips(
     status              TINYINT DEFAULT 1,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_slips_bet FOREIGN KEY (bet_id) REFERENCES bets(bet_id),
+    FOREIGN KEY (bet_id) REFERENCES bets(bet_id),
+    INDEX idx_slips_bet_id (bet_id),
     INDEX idx_slips_event_status (event_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

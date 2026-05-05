@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Data
@@ -15,20 +16,20 @@ import java.util.List;
 @Builder
 public class Market {
     // This should be the market table
-    private Integer id;
-    private Integer marketId;
-    private int periodId;
-    private String name;
-    private String marketDescription;
+    private Integer             id;
+    private Integer             marketId;
+    private int                 periodId;
+    private String              name;
+    private String              marketDescription;
 
     @JsonIgnore
-    private LocalDateTime createdAt;
+    private OffsetDateTime      createdAt;
 
     @JsonIgnore
-    private LocalDateTime updatedAt;
+    private OffsetDateTime      updatedAt;
 
     @JsonIgnore
-    private String eventId;
+    private String              eventId;
 
-    private List<Participant> participants;
+    private List<Participant>   participants;
 }

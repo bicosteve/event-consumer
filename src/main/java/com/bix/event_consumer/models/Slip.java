@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Data
 @AllArgsConstructor
@@ -24,6 +25,6 @@ public class Slip{
     private BigDecimal      odds;
     private String          specialBetValue;
     private Integer         status;
-    private LocalDateTime   createdAt;
-    private LocalDateTime   updatedAt;
+    private OffsetDateTime  createdAt;
+    private OffsetDateTime  updatedAt;
 }

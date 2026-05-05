@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Data
@@ -19,22 +20,22 @@ public class Event {
     @JsonIgnore
     private Integer id;
 
-    private String eventId;
-    private String eventUuid;
-    private Integer sportId;
-    private LocalDateTime eventDate;
+    private String          eventId;
+    private String          eventUuid;
+    private Integer         sportId;
+    private OffsetDateTime  eventDate;
 
-    private List<Team> teams;
-    private List<Market> markets;
-    private Score score;
-    private Schedule schedule;
-
-    @JsonIgnore
-    private LocalDateTime createdAt;
+    private List<Team>      teams;
+    private List<Market>    markets;
+    private Score           score;
+    private Schedule        schedule;
 
     @JsonIgnore
-    private LocalDateTime updatedAt;
+    private OffsetDateTime  createdAt;
+
+    @JsonIgnore
+    private OffsetDateTime  updatedAt;
 
     @JsonIgnore // do not deserialize
-    private EventStatus status;
+    private EventStatus     status;
 }

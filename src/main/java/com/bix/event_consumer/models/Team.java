@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+
 
 @Data
 @AllArgsConstructor
@@ -21,20 +23,20 @@ public class Team {
     @JsonIgnore
     private String eventId;
 
-    private String name;
-    private String mascot;
-    private String abbreviation;
-    private Integer conferenceId;
-    private Integer divisionId;
-    private Integer ranking;
-    private String record;
-    private Boolean isAway;
-    private Boolean isHome;
-    private Conference conference;
+    private String              name;
+    private String              mascot;
+    private String              abbreviation;
+    private Integer             conferenceId;
+    private Integer             divisionId;
+    private Integer             ranking;
+    private String              record;
+    private Boolean             isAway;
+    private Boolean             isHome;
+    private Conference          conference;
 
     @JsonIgnore
-    private LocalDateTime createdAt;
+    private OffsetDateTime      createdAt;
 
     @JsonIgnore
-    private LocalDateTime updatedAt;
+    private OffsetDateTime      updatedAt;
 }

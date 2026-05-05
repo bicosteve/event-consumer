@@ -6,7 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Repository
@@ -53,8 +54,8 @@ public class BetSlipRepository{
                         .odds(rs.getBigDecimal("odds"))
                         .specialBetValue(rs.getString("special_bet_value"))
                         .status(rs.getInt("status"))
-                        .createdAt(rs.getObject("created_At", LocalDateTime.class))
-                        .updatedAt(rs.getObject("updated_at", LocalDateTime.class))
+                        .createdAt(rs.getTimestamp("created_at").toInstant().atOffset(ZoneOffset.UTC))
+                        .updatedAt(rs.getTimestamp("updated_at").toInstant().atOffset(ZoneOffset.UTC))
                         .build(),
                 eventId);
 
@@ -97,8 +98,8 @@ public class BetSlipRepository{
                         .odds(rs.getBigDecimal("odds"))
                         .specialBetValue(rs.getString("special_bet_value"))
                         .status(rs.getInt("status"))
-                        .createdAt(rs.getObject("created_at", LocalDateTime.class))
-                        .updatedAt(rs.getObject("updated_at", LocalDateTime.class))
+                        .createdAt(rs.getTimestamp("created_at").toInstant().atOffset(ZoneOffset.UTC))
+                        .updatedAt(rs.getTimestamp("updated_at").toInstant().atOffset(ZoneOffset.UTC))
                         .build(),
                 betId
         );
