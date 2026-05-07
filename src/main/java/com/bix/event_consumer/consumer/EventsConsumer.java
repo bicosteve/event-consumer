@@ -38,7 +38,7 @@ public class EventsConsumer {
             }
 
         }catch(Exception ex){
-            log.error("Consumer::error processing event {}:{}",event.getEventId(), ex.getMessage());
+            log.error("Consumer::error processing event {}:{}",event.getEventId(), ex.getMessage(), ex);
         }
     }
 

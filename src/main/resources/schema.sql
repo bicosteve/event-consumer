@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS teams(
 -- 3. Markets Table
 CREATE TABLE IF NOT EXISTS markets(
     id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
-    market_rundown_id   INT NOT NULL UNIQUE,
+    market_rundown_id   BIGINT NOT NULL,
     market_type_id      INT NOT NULL,
     period_id           INT,
     name                VARCHAR(255) NOT NULL,
@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS markets(
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (event_id) REFERENCES rundown_event(event_id),
+    UNIQUE KEY uq_market_per_event (market_rundown_id, event_id),
     INDEX idx_markets_event (event_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -119,32 +120,70 @@ CREATE TABLE IF NOT EXISTS bets(
     profile_id      BIGINT UNSIGNED NOT NULL,
     stake           DECIMAL(12,2) NOT NULL,
     is_bonus        TINYINT NOT NULL DEFAULT 0,
-    status          TINYINT NOT NULL DEFAULT 1,
-    total_odds      DECIMAL(12,2),
+    status          TINYINT NOT NULL,
+    total_odds      DECIMAL(12,2) CHECK (total_odds > 1.2),
     possible_win    DECIMAL(12,2) NOT NULL,
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_bets_profile (profile_id),
-    INDEX idx_bets_status (status),
-    INDEX idx_bets_id (bet_id)
+    INDEX           idx_bet_id(bet_id),
+    INDEX           idx_profile_id(profile_id),
+    INDEX           idx_status(status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 8. Bet Slips Table (Fixed: Added status column for results processing)
+-- 8. BetSlips Table
 CREATE TABLE IF NOT EXISTS bet_slips(
     bet_slip_id         BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     bet_id              BIGINT UNSIGNED NOT NULL,
-    event_id            VARCHAR(200) NOT NULL,
+    event_id            VARCHAR(255) NOT NULL,
     sport_id            INT UNSIGNED NOT NULL,
     team_id             INT UNSIGNED NOT NULL,
     market_id           INT UNSIGNED NOT NULL,
     market_name         VARCHAR(255) NOT NULL,
     participant_name    VARCHAR(255) NOT NULL,
     odds                DECIMAL(6,2) NOT NULL,
-    special_bet_value   VARCHAR(255) DEFAULT '',
-    status              TINYINT DEFAULT 1,
+    special_bet_value   VARCHAR(255),
+    status              INT UNSIGNED NOT NULL DEFAULT 1,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (bet_id) REFERENCES bets(bet_id),
-    INDEX idx_slips_bet_id (bet_id),
-    INDEX idx_slips_event_status (event_id, status)
+    INDEX               idx_bet_slip_id(bet_slip_id),
+    INDEX               idx_bet_id_bet_slips(bet_id),
+    INDEX               idx_sport_id(sport_id),
+    INDEX               idx_team_id(team_id),
+    INDEX               idx_market_id(market_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 9. Transactions Table
+CREATE TABLE IF NOT EXISTS transactions (
+    id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
+    profile_id          BIGINT UNSIGNED NOT NULL,
+    reference           VARCHAR(100) NOT NULL UNIQUE,
+    type                TINYINT NOT NULL DEFAULT 0 CHECK (type IN (0,1)),
+    amount              DECIMAL(10, 2) NOT NULL,
+    status              TINYINT NOT NULL DEFAULT 1 CHECK (status IN (1,2,3,4)),
+    created_by          VARCHAR(100) NOT NULL,
+    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (profile_id) REFERENCES profile(profile_id),
+    INDEX idx_transaction_profile_id (profile_id),
+    INDEX idx_transaction_type (type),
+    INDEX idx_transaction_status (status),
+    INDEX idx_transaction_created_at (created_at),
+    INDEX idx_transaction_created_by (created_by)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 10. Wallet Table
+CREATE TABLE IF NOT EXISTS wallet(
+    id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
+    profile_id          BIGINT UNSIGNED NOT NULL,
+    balance             DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    bonus               DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    created_by          VARCHAR(100) NOT NULL,
+    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+    CURRENT_TIMESTAMP,
+    FOREIGN KEY (profile_id) REFERENCES profile(profile_id),
+    CONSTRAINT chk_balance_non_negative CHECK (balance >= 0),
+    INDEX idx_wallet_id (id),
+    INDEX idx_wallet_profile_id (profile_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

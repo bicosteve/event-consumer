@@ -30,6 +30,8 @@ public class EventRepository {
                 event.getEventId()
         );
 
+        log.info("Event Data {}", event);
+
         // a. Get the status from score before inserting
         EventStatus status = event.getScore() != null ? event.getScore().getEventStatus() : null;
 
@@ -184,12 +186,33 @@ public class EventRepository {
 
     @Transactional
     public void updateEvent(Event event){
+        // 01. Check if an event has markets
+        // We do not want events with no markets
+        if(event.getMarkets() == null || event.getMarkets().isEmpty()){
+            log.warn("EventRepository::No markets for event {}", event.getEventId());
+            return;
+        }
+
+        // 02. Check if an event has teams
+        // We do not want events with no teams
+        if(event.getTeams() == null || event.getTeams().isEmpty()){
+            log.warn("EventRepository::No teams for event {}", event.getEventId());
+            return;
+        }
+
+        // 03. Check if an event has scores
+        // We do not want events with no scores
+        if(event.getScore() == null){
+            log.warn("EventRepository::No score for event {}", event.getEventId());
+            return;
+        }
+
         log.info("EventRepository::Attempt to insert event - {} ", event.getEventId());
 
         this.insertEvent(event);
-        this.insertScore(event);
         this.insertTeams(event);
         this.insertMarkets(event);
+        this.insertScore(event);
 
         log.info("EventRepository::Event {} inserted", event.getEventId());
 

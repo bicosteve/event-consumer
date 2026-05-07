@@ -20,8 +20,10 @@ public class MarketsRepository {
 
     public Long addMarket(Market market){
         log.info(
-                "MarketsRepository::attempt to add market {} ",
-                market.getMarketDescription()
+                "MarketsRepository::add market {} with market_rundown_id {} and market_event_id {} ",
+                market.getMarketDescription(),
+                market.getId(),
+                market.getEventId()
         );
 
         String sql = """
@@ -40,7 +42,6 @@ public class MarketsRepository {
                     period_id               = new_market.period_id,
                     name                    = new_market.name,
                     description             = new_market.description,
-                    event_id                = new_market.event_id,
                     updated_at              = NOW()
                 """;
 
@@ -50,7 +51,7 @@ public class MarketsRepository {
                     PreparedStatement ps = connection.prepareStatement(sql,new String[]{"id"});
 
 
-                    ps.setInt(1, market.getId());
+                    ps.setLong(1, market.getId());
                     ps.setInt(2,market.getMarketId());
                     ps.setInt(3, market.getPeriodId());
                     ps.setString(4,market.getName());
@@ -82,12 +83,22 @@ public class MarketsRepository {
             generatedId = this.queryForMarketId(market.getId(), market.getEventId());
         }
 
+        // Guard against null value
+        if(generatedId == null){
+            log.error("MarketRepository::failed to get id for market_rundown_id = {} for event {}",
+                    market.getId(),
+                    market.getEventId());
+
+            throw new RuntimeException("Failed to get market id for rundown_id=%s event_id=%s"
+                    .formatted(market.getId(),market.getEventId()));
+        }
+
         log.info("MarketRepo::market {} inserted with id {}", market.getId(),generatedId);
 
         return generatedId;
     }
 
-    private Long queryForMarketId(Integer marketRundownId, String eventId){
+    private Long queryForMarketId(Long marketRundownId, String eventId){
         String q = "SELECT id FROM markets WHERE market_rundown_id = ? AND event_id = ?";
         List<Long> ids = this.jdbcTemplate
                 .query(q,(rs, rowNum) -> rs.getLong("id"), marketRundownId, eventId);

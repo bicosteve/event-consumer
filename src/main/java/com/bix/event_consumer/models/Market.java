@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 public class Market {
     // This should be the market table
-    private Integer             id;
+    private Long                id;
     private Integer             marketId;
     private int                 periodId;
     private String              name;
