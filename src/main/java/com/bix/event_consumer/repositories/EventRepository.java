@@ -30,8 +30,6 @@ public class EventRepository {
                 event.getEventId()
         );
 
-        log.info("Event Data {}", event);
-
         // a. Get the status from score before inserting
         EventStatus status = event.getScore() != null ? event.getScore().getEventStatus() : null;
 
