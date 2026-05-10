@@ -14,12 +14,13 @@ public class ResultConsumer{
 
     @RabbitListener(queues = "${app.rabbitmq.results.queue}")
     public void consume(String eventId){
-        log.info("ResultConsumer::received result trigger for event {}",eventId);
-        this.resultService.processBetResults(eventId);
+        log.info("Received result trigger for event {}",eventId);
+
         try{
+            this.resultService.processBetResults(eventId);
             log.info("Consumed event {} ", eventId);
         }catch(Exception e){
-            log.error("ResultConsumer::error processing results for event {} : {} ", eventId,e.getMessage());
+            log.error("Error processing results for event {} : {} ", eventId,e.getMessage());
         }
     }
 }

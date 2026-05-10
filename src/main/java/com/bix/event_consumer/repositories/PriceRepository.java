@@ -37,7 +37,7 @@ public class PriceRepository {
                     updated_at          = NOW()
                 """;
         log.info(
-                "PriceRepository::Attempting to add price for participant {} bookmaker {} line {}",
+                "Attempting to add price for participant {} bookmaker {} line {}",
                 price.getParticipantId(),
                 price.getBookMarkerId(),
                 price.getLineId()
@@ -58,7 +58,7 @@ public class PriceRepository {
         );
 
         log.info(
-                "PriceRepository::price for participant {} bookmaker {} line {} upserted successfully",
+                "Price for participant {} bookmaker {} line {} inserted successfully",
                 price.getParticipantId(),
                 price.getBookMarkerId(),
                 price.getLineId()

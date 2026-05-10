@@ -21,7 +21,7 @@ public class EventsConsumer {
 
     @RabbitListener(queues = "${app.rabbitmq.matches.queue}")
     public void consume(Event event){
-        log.info("Consumer::received event {}",event.getEventId());
+        log.info("Received event {}",event.getEventId());
         try{
             // 01. Store the event on the events table
             this.eventRepository.updateEvent(event);
@@ -29,7 +29,7 @@ public class EventsConsumer {
             // 02. Check if the status of the game is final
             // Publish the score to the results queue
             if(this.isFinalStatus(event.getScore())){
-                log.info("EventConsumer::event {} is finished. Publishing scores to results queue",event.getEventId());
+                log.info("Event {} is finished. Publishing scores to results queue",event.getEventId());
                 this.rabbitTemplate.convertAndSend(
                         this.rabbitMQConfig.getResults().getExchange(),
                         this.rabbitMQConfig.getResults().getRoutingKey(),
@@ -38,7 +38,7 @@ public class EventsConsumer {
             }
 
         }catch(Exception ex){
-            log.error("Consumer::error processing event {}:{}",event.getEventId(), ex.getMessage(), ex);
+            log.error("Error processing event {}:{}",event.getEventId(), ex.getMessage(), ex);
         }
     }
 

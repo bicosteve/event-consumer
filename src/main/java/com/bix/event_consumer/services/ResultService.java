@@ -29,12 +29,12 @@ public class ResultService{
 
     @Transactional
     public void processBetResults(String eventId){
-        log.info("ResultService::processing results for event {} ",eventId);
+        log.info("Processing results for event {} ",eventId);
 
         // 01. Get event's final score
         Score score = this.scoreRepository.findScoreByEventId(eventId);
         if(score == null){
-            log.warn("ResultService::no final score for event {} ",eventId);
+            log.warn("No final score for event {} ",eventId);
             return;
         }
 
@@ -44,7 +44,7 @@ public class ResultService{
         // 03. Nobody placed a bet on the event ?
         // Exit gracefully
         if(pendingSlips.isEmpty()){
-            log.info("ResultService::no pending slips for event {} ",eventId);
+            log.info("No pending slips for event {} ",eventId);
             return;
         }
 
@@ -53,13 +53,13 @@ public class ResultService{
         pendingSlips.forEach(slip -> {
             int slipStatus = this.evaluateSlip(slip,score);
             betSlipRepository.updateSlipStatus(slip.getBetSlipId(),slipStatus);
-            log.info("ResultService::slip {} updated to status {}",slip.getBetSlipId(),slipStatus);
+            log.info("Slip {} updated to status {}",slip.getBetSlipId(),slipStatus);
         });
 
         // 05. Update parent bet status
         this.updateBetStatus(pendingSlips);
 
-        log.info("ResultService::results processed for event {} ", eventId);
+        log.info("Results processed for event {} ", eventId);
 
     }
 
@@ -98,7 +98,7 @@ public class ResultService{
             List<Slip> allSlips = this.betSlipRepository.findBetsSlip(betId);
             int betStatus = this.checkBetStatus(allSlips);
             this.betRepository.updateBetStatus(betId,betStatus);
-            log.info("ResultService:: bet {} updated to status {} ",betId,betStatus);
+            log.info("Bet {} updated to status {} ",betId,betStatus);
         });
     }
 
@@ -107,7 +107,7 @@ public class ResultService{
         // Void if game was canceled, postponed, suspended or forfeited
       if(isVoidStatus(score.getEventStatus().getCode())){
           log.info(
-                  "ResultService::slip {} voided due to event status {}",
+                  "Slip {} voided due to event status {}",
                   slip.getBetSlipId(),score.getEventStatus().getCode()
           );
 
@@ -120,7 +120,7 @@ public class ResultService{
          // case "handicap" -> this.evaluateHandicap(slip,score);
          // case "totals" -> this.evaluateTotalsMarket(slip,score);
           default -> {
-              log.warn("ResultService::Unknown market type {} ", slip.getMarketName());
+              log.warn("Unknown market type {} ", slip.getMarketName());
               yield SlipStatus.VOID.getStatus();
           }
         };
@@ -150,7 +150,7 @@ public class ResultService{
 
         // Log a warning when pick is not matching moneyline picks
         log.warn(
-                "ResultService::Moneyline slip {} participant {} not matched",
+                "Moneyline slip {} participant {} not matched",
                 slip.getMarketId(),marketIdPick
         );
 

@@ -34,3 +34,6 @@ build/
 
 ### event-consumer
 .env
+
+## Logs
+logs/*.log

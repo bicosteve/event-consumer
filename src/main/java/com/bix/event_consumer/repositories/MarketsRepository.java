@@ -20,7 +20,7 @@ public class MarketsRepository {
 
     public Long addMarket(Market market){
         log.info(
-                "MarketsRepository::add market {} with market_rundown_id {} and market_event_id {} ",
+                "Add market {} with market_rundown_id {} and market_event_id {} ",
                 market.getMarketDescription(),
                 market.getId(),
                 market.getEventId()
@@ -85,7 +85,7 @@ public class MarketsRepository {
 
         // Guard against null value
         if(generatedId == null){
-            log.error("MarketRepository::failed to get id for market_rundown_id = {} for event {}",
+            log.error("Failed to get id for market_rundown_id {} for event {}",
                     market.getId(),
                     market.getEventId());
 
@@ -93,7 +93,7 @@ public class MarketsRepository {
                     .formatted(market.getId(),market.getEventId()));
         }
 
-        log.info("MarketRepo::market {} inserted with id {}", market.getId(),generatedId);
+        log.info("Market {} inserted with id {}", market.getId(),generatedId);
 
         return generatedId;
     }

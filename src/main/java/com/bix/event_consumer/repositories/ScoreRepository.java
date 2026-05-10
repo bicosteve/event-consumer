@@ -19,7 +19,7 @@ public class ScoreRepository {
 
     // 01. Add score to scores table
     public void addScores(Score score){
-        log.info("ScoreRepository::attempting to insert Score for event {}", score.getEventId());
+        log.info("Attempting to insert Score for event {}", score.getEventId());
         String sql = """
                 INSERT INTO scores(
                     event_id,
@@ -74,12 +74,12 @@ public class ScoreRepository {
                 score.getVenueLocation()
         );
 
-        log.info("ScoreRepository::Inserted scores for event {} ", score.getEventId());
+        log.info("Inserted scores for event {} ", score.getEventId());
     }
 
     // 02. Find Event
     public Score findScoreByEventId(String eventId){
-        log.info("ScoreRepository::Fetching score for event {} ", eventId);
+        log.info("Fetching score for event {} ", eventId);
         String query = """
                 SELECT
                     id,

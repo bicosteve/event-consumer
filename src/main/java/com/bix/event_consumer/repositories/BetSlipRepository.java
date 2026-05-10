@@ -64,7 +64,7 @@ public class BetSlipRepository{
 
     // 02. Find all Bet's slips
     public List<Slip> findBetsSlip(Long betId){
-        log.info("BetSlipRepository::fetching all slips for {} bet ",betId);
+        log.info("Fetching all slips for {} bet ",betId);
         String query = """
                 SELECT
                     bet_slip_id,
@@ -109,7 +109,7 @@ public class BetSlipRepository{
 
     // 03. Update Slip status
     public void updateSlipStatus(Long betSlipId, int status){
-        log.info("BetSlipRepository::updating slip {} to status {} ", betSlipId,status);
+        log.info("Updating slip {} to status {} ", betSlipId,status);
 
         String query = """
                 UPDATE bet_slips

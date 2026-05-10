@@ -18,7 +18,7 @@ public class BetRepository{
 
     // 01. Find Bet
     public Bet findById(Long betId){
-        log.info("BetRepository::fetching bet {} ", betId);
+        log.info("Fetching bet {} ", betId);
 
         String query = """
                 SELECT
@@ -52,16 +52,26 @@ public class BetRepository{
     }
 
     // 02. Update Bet Status
-    public void updateBetStatus(Long betId, int status){
-        log.info("BetRepository::updating bet {} status to {} ", betId,status);
-
+    public void updateBetStatus(Long betId, Integer status){
         String query = """
                 UPDATE bets
                 SET status = ?
                 WHERE bet_id = ?
                 """;
 
-        this.jdbcTemplate.update("",status,betId);
+        try{
+            log.info("Attempting to update bet {} status to {} ", betId, status);
+            this.jdbcTemplate.update(query,status,betId);
+        } catch(Exception e){
+            log.error(
+                    "Error updating bet {} status to {} for {}",
+                    betId,
+                    status,
+                    e.getMessage()
+            );
+
+            throw e;
+        }
     }
 
 }
