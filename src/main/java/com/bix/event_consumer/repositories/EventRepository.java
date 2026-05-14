@@ -25,8 +25,13 @@ public class EventRepository {
 
     // 01. Insert event
     private void insertEvent(Event event){
+        if(event == null){
+            log.warn("There is no event to be inserted. Abort");
+            return;
+        }
+
         log.info(
-                "EventRepository::Attempting to insert event with details {}",
+                "Attempting to insert event {}",
                 event.getEventId()
         );
 
@@ -68,7 +73,6 @@ public class EventRepository {
 
 
         // c. Then insert the event
-        log.info("ConsumerRepo::event {}",event.getEventId());
         this.jdbcTemplate.update(
                 query,
                 event.getEventId(),
@@ -88,13 +92,15 @@ public class EventRepository {
     // 02. Insert Teams
     private void insertTeams(Event event){
         if(event.getTeams() == null || event.getTeams().isEmpty()){
-            log.warn("EventRepository::no teams for event {}", event.getEventId());
+            log.warn("No teams for event {}. Skip", event.getEventId());
             return;
         }
 
         log.info(
-                "EventRepository::inserting {} teams for event {}",
-                event.getTeams().size(), event.getEventId());
+                "Inserting {} teams for event {}",
+                event.getTeams().size(),
+                event.getEventId()
+        );
 
         event.getTeams().forEach(team ->{
             team.setEventId(event.getEventId());
@@ -106,11 +112,11 @@ public class EventRepository {
     // 03. Insert Markets
     private void insertMarkets(Event event){
         if(event.getMarkets() == null || event.getMarkets().isEmpty()){
-            log.warn("EventRepository::no markets for event {}", event.getEventId());
+            log.warn("No markets for event {}. Skip", event.getEventId());
             return;
         }
 
-        log.info("EventRepository::Inserting {} markets for {} event",
+        log.info("Inserting {} markets for {} event",
                 event.getMarkets().size(), event.getEventId());
 
         event.getMarkets().forEach(market -> {
@@ -125,24 +131,23 @@ public class EventRepository {
     // 04. Insert Scores
     private void insertScore(Event event){
         if(event.getScore() == null){
-            log.warn("EventRepository::No scores for event {}", event.getEventId());
+            log.warn("No scores for event {}. Skip", event.getEventId());
             return;
         }
 
-        log.info("EventRepository::Inserting score for event {}", event.getEventId());
+        log.info("Inserting score for event {}", event.getEventId());
         this.scoreRepository.addScores(event.getScore());
 
     }
 
     // 05. Insert Prices/Odds
     private void insertPrices(Participant participant, Long participantId){
-
         if(participant.getLines() == null || participant.getLines().isEmpty()){
-            log.warn("EventRepository::No prices for participant {}", participant.getParticipantId());
+            log.warn("No prices for participant {}. Skip", participant.getParticipantId());
             return;
         }
 
-        log.info("EventRepository::Inserting prices for participant {}", participant.getParticipantId());
+        log.info("Inserting prices for participant {}", participant.getParticipantId());
 
         participant.getLines().forEach(line -> {
             // key = 23 which is the  bookmakerId
@@ -164,11 +169,11 @@ public class EventRepository {
     // 06. Insert Participants
     private void insertParticipants(Market market, Long marketId){
         if(market.getParticipants() == null || market.getParticipants().isEmpty()){
-            log.warn("EventRepository::No participants for market {}", marketId);
+            log.warn("No participants for market {}. Skip", marketId);
             return;
         }
 
-        log.info("EventRepository::Inserting participants {} for market {}",
+        log.info("Inserting participants {} for market {}",
                 market.getParticipants().size(),
                 marketId);
 
@@ -184,14 +189,35 @@ public class EventRepository {
 
     @Transactional
     public void updateEvent(Event event){
-        log.info("EventRepository::Attempt to insert event - {} ", event.getEventId());
+        // 01. Check if an event has markets
+        // We do not want events with no markets
+        if(event.getMarkets() == null || event.getMarkets().isEmpty()){
+            log.warn("No markets for event {}! Skip", event.getEventId());
+            return;
+        }
+
+        // 02. Check if an event has teams
+        // We do not want events with no teams
+        if(event.getTeams() == null || event.getTeams().isEmpty()){
+            log.warn("No teams for event {}! Skip", event.getEventId());
+            return;
+        }
+
+        // 03. Check if an event has scores
+        // We do not want events with no scores
+        if(event.getScore() == null){
+            log.warn("No score for event {}! Skip", event.getEventId());
+            return;
+        }
+
+        log.info("Attempt to insert event - {}", event.getEventId());
 
         this.insertEvent(event);
-        this.insertScore(event);
         this.insertTeams(event);
         this.insertMarkets(event);
+        this.insertScore(event);
 
-        log.info("EventRepository::Event {} inserted", event.getEventId());
+        log.info("Event {} inserted", event.getEventId());
 
     }
 }

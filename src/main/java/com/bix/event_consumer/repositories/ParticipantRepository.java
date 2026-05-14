@@ -18,7 +18,7 @@ public class ParticipantRepository {
 
     public Long addParticipant(Participant participant){
         log.info(
-                "ParticipantRepo::attempting to add participant {}",
+                "Attempting to add participant {}",
                 participant.getId()
         );
 
@@ -68,8 +68,9 @@ public class ParticipantRepository {
         participant.setParticipantId(generatedId.intValue());
 
         log.info(
-                "ParticipantRepo::Added participant {}",
-                participant.getParticipantId()
+                "Added participant {}, Generated Id {}",
+                participant.getParticipantId(),
+                generatedId
         );
 
         return generatedId;

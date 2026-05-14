@@ -34,3 +34,10 @@ build/
 
 ### event-consumer
 .env
+
+## Logs
+logs/*.log
+
+.idea
+
+.DS_Store

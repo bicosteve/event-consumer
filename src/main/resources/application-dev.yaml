@@ -7,18 +7,9 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: ${H2DB}
-#    username: sa
-#    password:
-#    driver-class-name: org.h2.Driver
-
-#  h2:
-#    console:
-#      enabled: true
-#      path: /h2-console
-#      settings:
-#        web-allow-others: false
-#        trace: false
+    hikari:
+      keepalive-time: 30_000 # keep connection alive by testing them every 30s
+      minimum-idle: 10 # ensure pool does not die when idle
 
   sql:
     init:
@@ -36,14 +27,23 @@ spring:
 
 app:
   rabbitmq:
-    exchange: ${RABBITMQ_EXCHANGE}
-    queue: ${RABBITMQ_QUEUE}
-    routing-key: ${RABBITMQ_ROUTING_KEY}
+    matches:
+      exchange: ${RABBITMQ_MATCHES_EXCHANGE}
+      queue: ${RABBITMQ_MATCHES_QUEUE}
+      routing-key: ${RABBITMQ_MATCHES_ROUTING_KEY}
+    results:
+      exchange: ${RABBITMQ_RESULTS_EXCHANGE}
+      queue: ${RABBITMQ_RESULTS_QUEUE}
+      routing-key: ${RABBITMQ_RESULTS_ROUTING_KEY}
 
 server:
   port: ${APP_PORT}
 
 
 logging:
+  config: classpath:event-consumer-logback.xml
   level:
+    root: INFO
+    com.bixx.event_consumer: ${LOGGING_LEVEL}
     org.springframework.jdbc: ${LOGGING_LEVEL}
+    org.apache.coyote: INFO

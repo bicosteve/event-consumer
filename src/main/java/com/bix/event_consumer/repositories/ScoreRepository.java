@@ -1,10 +1,15 @@
 package com.bix.event_consumer.repositories;
 
+import com.bix.event_consumer.enums.EventStatus;
 import com.bix.event_consumer.models.Score;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
@@ -12,8 +17,9 @@ import org.springframework.stereotype.Repository;
 public class ScoreRepository {
     private final JdbcTemplate jdbcTemplate;
 
+    // 01. Add score to scores table
     public void addScores(Score score){
-        log.info("ScoreRepository::attempting to insert Score for event {}", score.getEventId());
+        log.info("Attempting to add score for event {}", score.getEventId());
         String sql = """
                 INSERT INTO scores(
                     event_id,
@@ -68,6 +74,59 @@ public class ScoreRepository {
                 score.getVenueLocation()
         );
 
-        log.info("ScoreRepository::Inserted scores for event {} ", score.getEventId());
+        log.info("Inserted scores for event {} ", score.getEventId());
     }
+
+    // 02. Find Event
+    public Score findScoreByEventId(String eventId){
+        log.info("Fetching score for event {} ", eventId);
+        String query = """
+                SELECT
+                    id,
+                    event_id,
+                    event_status,
+                    event_status_detail,
+                    team_id_away,
+                    team_id_home,
+                    winner_away,
+                    winner_home,
+                    score_away,
+                    score_home,
+                    game_clock,
+                    game_period,
+                    broadcast,
+                    venue_name,
+                    venue_location,
+                    created_at,
+                    updated_at
+                FROM scores
+                WHERE event_id = ?
+                """;
+        List<Score> scores = this.jdbcTemplate.query(
+                query,
+                (rs,rowNum) -> Score.builder()
+                        .scoreId(rs.getLong("id"))
+                        .eventId(rs.getString("event_id"))
+                        .eventStatus(EventStatus.fromCode(rs.getInt("event_status")))
+                        .eventStatusDetail(rs.getString("event_status_detail"))
+                        .teamIdAway(rs.getInt("team_id_away"))
+                        .teamIdHome(rs.getInt("team_id_home"))
+                        .winnerAway(rs.getInt("winner_away"))
+                        .winnerHome(rs.getInt("winner_home"))
+                        .scoreAway(rs.getInt("score_away"))
+                        .scoreHome(rs.getInt("score_home"))
+                        .gameClock(rs.getInt("game_clock"))
+                        .gamePeriod(rs.getInt("game_period"))
+                        .broadcast(rs.getString("broadcast"))
+                        .venueName(rs.getString("venue_name"))
+                        .venueLocation(rs.getString("venue_location"))
+                        .createdAt(rs.getTimestamp("created_at").toInstant().atOffset(ZoneOffset.UTC))
+                        .updatedAt(rs.getTimestamp("updated_at").toInstant().atOffset(ZoneOffset.UTC))
+                        .build(),
+                eventId);
+        
+        return scores.isEmpty() ? null : scores.get(0);
+    }
+
+
 }

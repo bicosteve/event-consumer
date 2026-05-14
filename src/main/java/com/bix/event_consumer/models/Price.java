@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Data
 @NoArgsConstructor
@@ -18,15 +19,15 @@ import java.time.LocalDateTime;
 public class Price {
     // This should be the odds table
     @JsonIgnore
-    private Integer priceId; // set by the table
+    private Integer             priceId; // set by the table
 
-    private String id;
-    private int price;
+    private String              id;
+    private int                 price;
 
-    private Integer priceDelta;
+    private Integer             priceDelta;
 
     @JsonProperty("is_main_line")
-    private boolean isMainLine;
+    private boolean             isMainLine;
 
     @JsonIgnore
     public BigDecimal getOdds(){
@@ -43,22 +44,22 @@ public class Price {
     }
 
     @JsonIgnore
-    private Long participantId;
+    private Long                    participantId;
     @JsonIgnore
-    private Integer bookMarkerId; // this is the price key
+    private Integer                 bookMarkerId; // this is the price key
     @JsonIgnore
-    private String handicapValue;
+    private String                  handicapValue;
 
     @JsonIgnore
-    private String lineId;
+    private String                  lineId;
 
     @JsonIgnore
-    private LocalDateTime createdAt;
+    private OffsetDateTime          createdAt;
 
-    private LocalDateTime updatedAt;
+    private OffsetDateTime          updatedAt;
 
     @JsonIgnore
-    private LocalDateTime closedAt;
+    private OffsetDateTime          closedAt;
 
 
 }

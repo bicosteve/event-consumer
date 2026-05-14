@@ -7,7 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+
+import java.time.OffsetDateTime;
 
 @Data
 @AllArgsConstructor
@@ -16,25 +17,25 @@ import java.time.LocalDateTime;
 public class Score {
     // This should be the outcome tables
     @JsonIgnore
-    private Long scoreId;
+    private Long            scoreId;
 
-    private String eventId;
-    private EventStatus eventStatus;
-    private String eventStatusDetail;
-    private Integer teamIdAway;
-    private Integer teamIdHome;
-    private int winnerAway;
-    private int winnerHome;
-    private int scoreAway;
-    private int scoreHome;
-    private int gameClock;
-    private int gamePeriod;
-    private String broadcast;
-    private String venueName;
-    private String venueLocation;
+    private String          eventId;
+    private EventStatus     eventStatus;
+    private String          eventStatusDetail;
+    private Integer         teamIdAway;
+    private Integer         teamIdHome;
+    private int             winnerAway;
+    private int             winnerHome;
+    private int             scoreAway;
+    private int             scoreHome;
+    private int             gameClock;
+    private int             gamePeriod;
+    private String          broadcast;
+    private String          venueName;
+    private String          venueLocation;
 
     @JsonIgnore
-    private LocalDateTime createdAt;
+    private OffsetDateTime  createdAt;
 
-    private LocalDateTime updatedAt;
+    private OffsetDateTime  updatedAt;
 }

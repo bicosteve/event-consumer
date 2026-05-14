@@ -12,7 +12,7 @@ import java.util.Map;
 @Builder
 @Data
 public class Line {
-    private String id;
-    private String value;
-    private Map<String,Price> prices;
+    private String              id;
+    private String              value;
+    private Map<String,Price>   prices;
 }

@@ -13,7 +13,7 @@ public class TeamRepository {
     private final JdbcTemplate jdbcTemplate;
 
     public void addTeam(Team team){
-        log.info("TeamRepo::Attempting to insert  team {} ", team.getTeamId());
+        log.info("Attempting to insert  team {}", team.getTeamId());
 
         // Safely extract conference data
         Integer conferenceId = null;
@@ -75,7 +75,7 @@ public class TeamRepository {
         );
 
         log.info(
-                "TeamRepository::team {} for event {} inserted successfully",
+                "Team {} for event {} inserted successfully",
                 team.getTeamId(),
                 team.getEventId()
                 );

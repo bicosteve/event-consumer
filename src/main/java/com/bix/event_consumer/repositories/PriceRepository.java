@@ -27,24 +27,15 @@ public class PriceRepository {
                     closed_at,
                     updated_at,
                     created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW()) AS new_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) AS new_price
                 ON DUPLICATE KEY UPDATE
                     price               = new_price.price,
                     price_delta         = new_price.price_delta,
-                    is_main_line        = new_price.is_main_line,
                     odds                = new_price.odds,
-                    participant_id      = new_price.participant_id,
-                    bookmaker_id        = new_price.bookmaker_id,
                     handicap_value      = new_price.handicap_value,
-                    line_id             = new_price.line_id,
                     closed_at           = new_price.closed_at,
-                    updated_at          = new_price.updated_at
+                    updated_at          = NOW()
                 """;
-        log.info(
-                "PriceRepository::Attempting to add price {} - query {}",
-                price.getPriceId(),
-                sql
-                );
 
         this.jdbcTemplate.update(
                 sql,
@@ -57,14 +48,7 @@ public class PriceRepository {
                 price.getBookMarkerId(),
                 price.getHandicapValue(),
                 price.getLineId(),
-                price.getClosedAt(),
-                price.getUpdatedAt()
+                price.getClosedAt()
         );
-
-        log.info(
-                "PriceRepository::price {} inserted successfully",
-                price.getId()
-        );
-
     }
 }
