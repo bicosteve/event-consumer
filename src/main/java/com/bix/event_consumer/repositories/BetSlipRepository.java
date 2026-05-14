@@ -18,7 +18,7 @@ public class BetSlipRepository{
 
     // 01. Find all event's pending slips
     public List<Slip> findEventsPendingSlips(String eventId){
-        log.info("BetSlipRepository::fetch pending slips for event {} ", eventId);
+        log.info("Fetch all pending slips for event {} ", eventId);
 
         String query = """
                 SELECT

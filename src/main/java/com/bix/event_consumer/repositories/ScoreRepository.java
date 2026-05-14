@@ -19,7 +19,7 @@ public class ScoreRepository {
 
     // 01. Add score to scores table
     public void addScores(Score score){
-        log.info("Attempting to insert Score for event {}", score.getEventId());
+        log.info("Attempting to add score for event {}", score.getEventId());
         String sql = """
                 INSERT INTO scores(
                     event_id,

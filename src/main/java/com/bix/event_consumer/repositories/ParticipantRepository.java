@@ -68,8 +68,9 @@ public class ParticipantRepository {
         participant.setParticipantId(generatedId.intValue());
 
         log.info(
-                "Added participant {}",
-                participant.getParticipantId()
+                "Added participant {}, Generated Id {}",
+                participant.getParticipantId(),
+                generatedId
         );
 
         return generatedId;

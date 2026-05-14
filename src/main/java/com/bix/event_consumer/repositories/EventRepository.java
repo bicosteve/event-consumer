@@ -73,7 +73,6 @@ public class EventRepository {
 
 
         // c. Then insert the event
-        log.info("Inserting event {}", event.getEventId());
         this.jdbcTemplate.update(
                 query,
                 event.getEventId(),

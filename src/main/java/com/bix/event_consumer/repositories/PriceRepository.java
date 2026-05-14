@@ -36,12 +36,6 @@ public class PriceRepository {
                     closed_at           = new_price.closed_at,
                     updated_at          = NOW()
                 """;
-        log.info(
-                "Attempting to add price for participant {} bookmaker {} line {}",
-                price.getParticipantId(),
-                price.getBookMarkerId(),
-                price.getLineId()
-                );
 
         this.jdbcTemplate.update(
                 sql,
@@ -56,13 +50,5 @@ public class PriceRepository {
                 price.getLineId(),
                 price.getClosedAt()
         );
-
-        log.info(
-                "Price for participant {} bookmaker {} line {} inserted successfully",
-                price.getParticipantId(),
-                price.getBookMarkerId(),
-                price.getLineId()
-        );
-
     }
 }

@@ -4,6 +4,7 @@ package com.bix.event_consumer.services;
 import com.bix.event_consumer.enums.BetStatus;
 import com.bix.event_consumer.enums.EventStatus;
 import com.bix.event_consumer.enums.SlipStatus;
+import com.bix.event_consumer.evaluator.MarketEvaluator;
 import com.bix.event_consumer.models.Score;
 import com.bix.event_consumer.models.Slip;
 import com.bix.event_consumer.repositories.BetRepository;
@@ -25,6 +26,9 @@ public class ResultService{
     private final ScoreRepository scoreRepository;
     private final BetSlipRepository betSlipRepository;
     private final BetRepository betRepository;
+    private final Map<String, MarketEvaluator> marketEvaluator;
+
+
 
 
     @Transactional
@@ -41,50 +45,50 @@ public class ResultService{
         // 02. Get event's pending slips
         List<Slip> pendingSlips = betSlipRepository.findEventsPendingSlips(eventId);
 
-        // 03. Nobody placed a bet on the event ?
-        // Exit gracefully
+        // 03. Nobody placed a bet on the event ? exit gracefully
         if(pendingSlips.isEmpty()){
-            log.info("No pending slips for event {} ",eventId);
+            log.info("No pending slips for event {} ", eventId);
             return;
         }
 
-
         // 04. Evaluate each slip
         pendingSlips.forEach(slip -> {
-            int slipStatus = this.evaluateSlip(slip,score);
-            betSlipRepository.updateSlipStatus(slip.getBetSlipId(),slipStatus);
-            log.info("Slip {} updated to status {}",slip.getBetSlipId(),slipStatus);
+            int newStatus = this.evaluateSlip(slip, score);
+            betSlipRepository.updateSlipStatus(slip.getBetSlipId(),newStatus);
+            log.info("Slip Id {} updated to status {}",
+                    slip.getBetSlipId(),
+                    newStatus);
         });
 
         // 05. Update parent bet status
         this.updateBetStatus(pendingSlips);
-
-        log.info("Results processed for event {} ", eventId);
+        log.info("Completed result processing for event {}", eventId);
 
     }
 
 
-
     private int checkBetStatus(List<Slip> slips){
-        // Checks the status of the slips associated with bet and returns
-        // an Integer. This integer will be used to set the overall bet status
-        boolean hasLost = slips.stream()
-                .anyMatch(slip -> slip.getStatus() == SlipStatus.LOST.getStatus());
+        // 1. RULE 01: If any slip is LOST, the whole bet is LOST immediately
+        if(slips.stream().anyMatch(slip -> slip.getStatus()
+                .equals(BetStatus.LOST.getStatus()))){
+            return BetStatus.LOST.getStatus();
+        }
 
-        boolean allWon  = slips.stream()
-                .allMatch(slip -> slip.getStatus() == SlipStatus.WON.getStatus());
+        // 2. RULE 02: If there is still a PENDING slip, the whole bet is PENDING
+        if(slips.stream().anyMatch(slip -> slip.getStatus()
+                .equals(BetStatus.PENDING.getStatus()))){
+            return BetStatus.PENDING.getStatus();
+        }
 
-        boolean allVoid = slips.stream()
-                .allMatch(slip -> slip.getStatus() == SlipStatus.VOID.getStatus());
+        // 3. RULE 03: If ALL slips are VOID the bet is VOID
+        if(slips.stream().allMatch(slip -> slip.getStatus()
+                .equals(BetStatus.VOID.getStatus()))){
+            return BetStatus.VOID.getStatus();
+        }
 
-        boolean hasPending = slips.stream()
-                .anyMatch(slip -> slip.getStatus() == SlipStatus.PENDING.getStatus());
-
-        if(hasLost) return BetStatus.LOST.getStatus();
-        if(hasPending) return BetStatus.PENDING.getStatus();
-        if(allWon) return BetStatus.WON.getStatus();
-        if(allVoid) return BetStatus.VOID.getStatus();
-
+        // 4. RULE 04: If here, it means there are NO losses and NO pendings
+        // The slip is mix of WON and VOID
+        // Mix of WON + VOID = WON
         return BetStatus.WON.getStatus();
     }
 
@@ -98,76 +102,33 @@ public class ResultService{
             List<Slip> allSlips = this.betSlipRepository.findBetsSlip(betId);
             int betStatus = this.checkBetStatus(allSlips);
             this.betRepository.updateBetStatus(betId,betStatus);
-            log.info("Bet {} updated to status {} ",betId,betStatus);
+            log.info("Bet {} updated to status {} ", betId, betStatus);
         });
     }
 
 
     private int evaluateSlip(Slip slip, Score score){
+        //Check the void status of a game.
         // Void if game was canceled, postponed, suspended or forfeited
-      if(isVoidStatus(score.getEventStatus().getCode())){
+      if(this.isVoidStatus(score.getEventStatus().getCode())){
           log.info(
-                  "Slip {} voided due to event status {}",
-                  slip.getBetSlipId(),score.getEventStatus().getCode()
-          );
-
+                  "Slip {} voided because of event {} status.",
+                  slip.getBetSlipId(),score.getEventStatus().getCode());
           return SlipStatus.VOID.getStatus();
       }
 
-      // market_names moneyline, handicap, totals
-        return switch(slip.getMarketName()){
-          case "moneyline" -> this.evaluateMoneylineMarket(slip,score);
-         // case "handicap" -> this.evaluateHandicap(slip,score);
-         // case "totals" -> this.evaluateTotalsMarket(slip,score);
-          default -> {
-              log.warn("Unknown market type {} ", slip.getMarketName());
-              yield SlipStatus.VOID.getStatus();
-          }
-        };
+      // Get the strategy to evaluate the markets
+        String marketName = slip.getMarketName().toLowerCase().trim();
+        String strategyKey = marketName + "Evaluator";
+        MarketEvaluator strategy = marketEvaluator.get(strategyKey);
+
+        if(strategy == null){
+            log.warn("Missing strategy for market {}", marketName);
+            return SlipStatus.PENDING.getStatus();
+        }
+
+        return strategy.evaluate(slip,score);
     }
-
-    // Evaluate Markets
-
-    // 01. Moneyline
-    private int evaluateMoneylineMarket(Slip slip, Score score){
-        int marketIdPick = slip.getMarketId();
-
-        // 01. Check if the pick was draw (3)
-        if(marketIdPick == 3){
-            boolean isDraw = score.getWinnerAway() == 0 && score.getWinnerHome() == 0;
-            return isDraw ? SlipStatus.WON.getStatus() : SlipStatus.LOST.getStatus();
-        }
-
-        // 02. Check home team was selected to win
-        if(marketIdPick == score.getTeamIdHome()){
-            return score.getWinnerHome() == 1 ? SlipStatus.WON.getStatus() : SlipStatus.LOST.getStatus();
-        }
-
-        // 03. Check away team was selected to win
-        if(marketIdPick == score.getTeamIdAway()){
-            return score.getWinnerAway() == 1 ? SlipStatus.WON.getStatus() : SlipStatus.LOST.getStatus();
-        }
-
-        // Log a warning when pick is not matching moneyline picks
-        log.warn(
-                "Moneyline slip {} participant {} not matched",
-                slip.getMarketId(),marketIdPick
-        );
-
-        return SlipStatus.VOID.getStatus();
-    }
-
-    // 02. Evaluate handicap
-//    private int evaluateHandicap(Slip slip, Score score){
-//
-//        return 0;
-//    }
-
-    // 03. Evaluate totals market
-//    private int evaluateTotalsMarket(Slip slip, Score score){
-//
-//        return 0;
-//    }
 
 
     private boolean isVoidStatus(int eventStatus){
@@ -178,9 +139,4 @@ public class ResultService{
                 || eventStatus == EventStatus.STATUS_SUSPENDED.getCode()
                 || eventStatus == EventStatus.STATUS_FORFEIT.getCode();
     }
-
-
-
-
-
 }
