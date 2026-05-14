@@ -19,7 +19,6 @@ public class HandicapEvaluator implements MarketEvaluator {
             return SlipStatus.PENDING.getStatus();
         }
 
-
         double handicap = 0;
         String rawValue = slip.getSpecialBetValue();
         if(rawValue.contains("=")){
@@ -32,23 +31,21 @@ public class HandicapEvaluator implements MarketEvaluator {
             }
         }
 
-
         int teamIdPick = slip.getTeamId();
 
         if(teamIdPick == score.getTeamIdHome()){
-            double adjustedScoreAway = score.getScoreHome() + handicap;
+            double adjustedScoreHome = score.getScoreHome() + handicap;
             log.info(
                     "Handicap evaluation home team={} scoreHome={} handicap={} adjustedScore={} scoreAway={}",
                     teamIdPick,
                     score.getScoreHome(),
                     handicap,
-                    adjustedScoreAway,
+                    adjustedScoreHome,
                     score.getScoreAway()
             );
-            return this.determineStatus(adjustedScoreAway,score.getScoreHome());
+            return this.determineStatus(adjustedScoreHome,score.getScoreHome());
         }
 
-        // If Away team was selected
         if(teamIdPick == score.getTeamIdAway()){
             double adjustedScoreAway = score.getScoreAway() + handicap;
             log.info(
@@ -62,7 +59,6 @@ public class HandicapEvaluator implements MarketEvaluator {
             return this.determineStatus(adjustedScoreAway,score.getScoreHome());
         }
 
-        // Log handicap pick was not matched
         log.warn(
                 "Handicap slip {} team {} not matched home = {} away = {}",
                 slip.getBetSlipId(),
