@@ -33,12 +33,12 @@ public class ResultService{
 
     @Transactional
     public void processBetResults(String eventId){
-        log.info("Processing results for event {} ",eventId);
+        log.info("Processing results for event {}",eventId);
 
         // 01. Get event's final score
         Score score = this.scoreRepository.findScoreByEventId(eventId);
         if(score == null){
-            log.warn("No final score for event {} ",eventId);
+            log.warn("No final score for event {}",eventId);
             return;
         }
 

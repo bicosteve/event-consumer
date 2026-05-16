@@ -18,10 +18,27 @@ public class TotalsEvaluator implements MarketEvaluator {
             return SlipStatus.PENDING.getStatus();
         }
 
-        // Totals market has teams id of 9
+        // Totals market has teams id of 9 & 10
         int teamIdPick = slip.getTeamId();
-        if(teamIdPick != 9){
-            return SlipStatus.PENDING.getStatus();
+        if(teamIdPick != 9 && teamIdPick != 10){
+            // teamId 9 is over and teamId 10 is under
+            log.warn(
+                    "Voiding slip due to invalid totals market pick {}",
+                    teamIdPick
+            );
+            return SlipStatus.VOID.getStatus();
+        }
+
+        // Totals participant names can be over or under
+        if(!slip.getParticipantName().equalsIgnoreCase("under")
+                && !slip.getParticipantName().equalsIgnoreCase("over")){
+            // participantName can only be either over or under
+            // void the slip
+            log.warn(
+                    "Voiding slip due to invalid participant name {}",
+                    slip.getParticipantName()
+            );
+            return SlipStatus.VOID.getStatus();
         }
 
         double handicapValue;
@@ -36,7 +53,7 @@ public class TotalsEvaluator implements MarketEvaluator {
             return SlipStatus.PENDING.getStatus();
         }
 
-        // Get all the goals score in the event.
+        // Calculate the total event's score
         double eventsTotalScore = score.getScoreHome() + score.getScoreAway();
         log.info(
                 "Parsed handicap value {}, total event score {}",
@@ -56,7 +73,7 @@ public class TotalsEvaluator implements MarketEvaluator {
 
         // Log win condition for totals pick not matched
         log.warn(
-                "Totals slip {} win condition for team {} not matched home = {} away = {}",
+                "Totals market slip {} win condition for team={} not matched home={} away={}",
                 slip.getBetSlipId(),
                 teamIdPick,
                 score.getScoreHome(),
