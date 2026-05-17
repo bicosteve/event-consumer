@@ -28,9 +28,6 @@ public class ResultService{
     private final BetRepository betRepository;
     private final Map<String, MarketEvaluator> marketEvaluator;
 
-
-
-
     @Transactional
     public void processBetResults(String eventId){
         log.info("Processing results for event {}",eventId);

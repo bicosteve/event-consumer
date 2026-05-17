@@ -4,7 +4,7 @@ import com.bix.event_consumer.enums.EventStatus;
 import com.bix.event_consumer.models.Event;
 import com.bix.event_consumer.models.Score;
 import com.bix.event_consumer.rabbitmq.RabbitMQConfig;
-import com.bix.event_consumer.repositories.EventRepository;
+import com.bix.event_consumer.services.EventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @RequiredArgsConstructor
 public class EventsConsumer {
-    private final EventRepository eventRepository;
+    private final EventService eventService;
     private final RabbitTemplate rabbitTemplate;
     private final RabbitMQConfig rabbitMQConfig;
 
@@ -23,8 +23,9 @@ public class EventsConsumer {
     public void consume(Event event){
         log.info("Received event {}",event.getEventId());
         try{
-            // 01. Store the event on the events table
-            this.eventRepository.updateEvent(event);
+            // 01. Send the event to the eventService
+            // this will then be sent to eventRepository
+            this.eventService.publishEvents(event);
 
             // 02. Check if the status of the game is final
             // Publish the score to the results queue
