@@ -5,6 +5,7 @@ import com.bix.event_consumer.enums.BetStatus;
 import com.bix.event_consumer.enums.EventStatus;
 import com.bix.event_consumer.enums.SlipStatus;
 import com.bix.event_consumer.evaluator.MarketEvaluator;
+import com.bix.event_consumer.events.BetStatusUpdate;
 import com.bix.event_consumer.models.Score;
 import com.bix.event_consumer.models.Slip;
 import com.bix.event_consumer.repositories.BetRepository;
@@ -26,6 +27,7 @@ public class ResultService{
     private final ScoreRepository scoreRepository;
     private final BetSlipRepository betSlipRepository;
     private final BetRepository betRepository;
+    private final TransactionService transactionService;
     private final Map<String, MarketEvaluator> marketEvaluator;
 
     @Transactional
@@ -96,10 +98,19 @@ public class ResultService{
 
         // 02. Get all the slips for this bet
         slipsByBet.forEach((betId,betSlips)->{
+            // a. look for slips with the betId
             List<Slip> allSlips = this.betSlipRepository.findBetsSlip(betId);
+
+            // b. return the bet status
             int betStatus = this.checkBetStatus(allSlips);
-            this.betRepository.updateBetStatus(betId,betStatus);
-            log.info("Bet {} updated to status {} ", betId, betStatus);
+
+            // c. update the bet status
+            BetStatusUpdate updates = this.betRepository.updateBetStatus(betId,betStatus);
+
+            // d. publish the update to the transaction queue
+            this.transactionService.publishBetStatus(updates);
+
+            log.info("Bet {} with status {}  updated to {} ", betId, betStatus, updates);
         });
     }
 

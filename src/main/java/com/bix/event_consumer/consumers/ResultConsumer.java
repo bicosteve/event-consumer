@@ -1,4 +1,4 @@
-package com.bix.event_consumer.consumer;
+package com.bix.event_consumer.consumers;
 
 import com.bix.event_consumer.services.ResultService;
 import lombok.RequiredArgsConstructor;

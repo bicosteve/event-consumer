@@ -1,6 +1,6 @@
 spring:
   application:
-    name: event-consumer
+    name: event-consumers
 
   datasource:
     url: ${DB_URL}
@@ -35,13 +35,21 @@ app:
       exchange: ${RABBITMQ_RESULTS_EXCHANGE}
       queue: ${RABBITMQ_RESULTS_QUEUE}
       routing-key: ${RABBITMQ_RESULTS_ROUTING_KEY}
+    transactions:
+      exchange: ${RABBITMQ_TRANSACTIONS_EXCHANGE}
+      queue: ${RABBITMQ_TRANSACTIONS_QUEUE}
+      routing-key: ${RABBITMQ_TRANSACTIONS_ROUTING_KEY}
+    wallets:
+      exchange: ${RABBITMQ_WALLETS_EXCHANGE}
+      queue: ${RABBITMQ_WALLETS_QUEUE}
+      routing-key: ${RABBITMQ_WALLETS_ROUTING_KEY}
 
 server:
   port: ${APP_PORT}
 
 
 logging:
-  config: classpath:event-consumer-logback.xml
+  config: classpath:event-consumers-logback.xml
   level:
     root: INFO
     com.bixx.event_consumer: ${LOGGING_LEVEL}

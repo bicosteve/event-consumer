@@ -1,11 +1,16 @@
 package com.bix.event_consumer.repositories;
 
+import com.bix.event_consumer.events.BetStatusUpdate;
 import com.bix.event_consumer.models.Bet;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -16,55 +21,28 @@ import java.util.List;
 public class BetRepository{
     private final JdbcTemplate jdbcTemplate;
 
-    // 01. Find Bet
-    public Bet findById(Long betId){
-        log.info("Fetching bet {} ", betId);
-
-        String query = """
-                SELECT
-                    bet_id,
-                    profile_id,
-                    stake,
-                    is_bonus,
-                    status,
-                    total_odds,
-                    possible_win,
-                    created_at,
-                    updated_at
-                """;
-        List<Bet> bets = this.jdbcTemplate.query(
-                query,
-                (rs, rowNum) -> Bet.builder()
-                        .betId(rs.getLong("bet_id"))
-                        .profileId(rs.getLong("profile_id"))
-                        .stake(rs.getBigDecimal("stake"))
-                        .isBonus(rs.getInt("is_bonus"))
-                        .status(rs.getInt("status"))
-                        .totalOdds(rs.getBigDecimal("total_odds"))
-                        .possibleWin(rs.getBigDecimal("possible_win"))
-                        .createdAt(rs.getTimestamp("created_at").toInstant().atOffset(ZoneOffset.UTC))
-                        .updatedAt(rs.getTimestamp("updated_at").toInstant().atOffset(ZoneOffset.UTC))
-                        .build(),
-                betId
-        );
-
-        return bets.isEmpty() ? null : bets.get(0);
-    }
-
-    // 02. Update Bet Status
-    public void updateBetStatus(Long betId, Integer status){
-        String query = """
-                UPDATE bets
-                SET status = ?
-                WHERE bet_id = ?
-                """;
-
+    // 01. Update Bet Status
+    @Transactional
+    public BetStatusUpdate updateBetStatus(Long betId, Integer status){
+        String query = "UPDATE bets SET status = ? WHERE bet_id = ?";
         try{
-            log.info("Attempting to update bet {} status to {} ", betId, status);
-            this.jdbcTemplate.update(query,status,betId);
+            log.info("Attempting to update bet={} from status 1 to status{} ", betId, status);
+
+            int rowsAffected = this.jdbcTemplate.update(query,status,betId);
+            if(rowsAffected == 0){
+                throw new RuntimeException("Failed to update bet " + betId + " status to " + status);
+            }
+
+            return BetStatusUpdate.builder()
+                    .betId(betId)
+                    .previousStatus(1)
+                    .currentStatus(status)
+                    .updateAt(LocalDateTime.now(ZoneOffset.UTC))
+                    .build();
+
         } catch(Exception e){
             log.error(
-                    "Error updating bet {} status to {} for {}",
+                    "Error updating bet={} to status={} because of={}",
                     betId,
                     status,
                     e.getMessage()
@@ -73,5 +51,4 @@ public class BetRepository{
             throw e;
         }
     }
-
 }

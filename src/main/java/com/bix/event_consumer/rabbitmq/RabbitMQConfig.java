@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
     private QueueConfig matches;
     private QueueConfig results;
+    private QueueConfig transactions;
 
     @Data
     public static class QueueConfig{
