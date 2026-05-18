@@ -62,7 +62,6 @@ public class ResultService{
         // 05. Update parent bet status
         this.updateBetStatus(pendingSlips);
         log.info("Completed result processing for event {}", eventId);
-
     }
 
 
@@ -85,7 +84,7 @@ public class ResultService{
             return BetStatus.VOID.getStatus();
         }
 
-        // 4. RULE 04: If here, it means there are NO losses and NO pendings
+        // 4. RULE 04: If here, it means there are NO losses and NO pending
         // The slip is mix of WON and VOID
         // Mix of WON + VOID = WON
         return BetStatus.WON.getStatus();
@@ -104,13 +103,13 @@ public class ResultService{
             // b. return the bet status
             int betStatus = this.checkBetStatus(allSlips);
 
-            // c. update the bet status
+            // c. update the bet status and return the updates.
+            // the updates will be published to transaction queue
             BetStatusUpdate updates = this.betRepository.updateBetStatus(betId,betStatus);
 
             // d. publish the update to the transaction queue
             this.transactionService.publishBetStatus(updates);
-
-            log.info("Bet {} with status {}  updated to {} ", betId, betStatus, updates);
+            log.info("Bet {} with status {}  updated to {}", betId, betStatus, updates);
         });
     }
 
