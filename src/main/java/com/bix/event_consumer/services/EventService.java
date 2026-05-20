@@ -12,13 +12,12 @@ import org.springframework.stereotype.Service;
 public class EventService {
     private final EventRepository eventRepository;
 
-    public void publishEvents(Event event){
+    public void consumeEvents(Event event){
         // Validate the incoming event
         if(event == null){
             log.warn("Event is null. Skipping...");
             return;
         }
-
         this.eventRepository.updateEvent(event);
     }
 }

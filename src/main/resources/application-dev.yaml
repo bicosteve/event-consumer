@@ -49,7 +49,7 @@ server:
 
 
 logging:
-  config: classpath:event-consumers-logback.xml
+  config: classpath:event-consumer-logback.xml
   level:
     root: INFO
     com.bixx.event_consumer: ${LOGGING_LEVEL}

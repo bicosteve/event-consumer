@@ -25,12 +25,12 @@ public class EventsConsumer {
         try{
             // 01. Send the event to the eventService
             // this will then be sent to eventRepository
-            this.eventService.publishEvents(event);
+            this.eventService.consumeEvents(event);
 
             // 02. Check if the status of the game is final
             // Publish the score to the results queue
             if(this.isFinalStatus(event.getScore())){
-                log.info("Event {} is finished. Publishing scores to results queue",event.getEventId());
+                log.info("Event={} is finished. Publishing scores to results queue",event.getEventId());
                 this.rabbitTemplate.convertAndSend(
                         this.rabbitMQConfig.getResults().getExchange(),
                         this.rabbitMQConfig.getResults().getRoutingKey(),
