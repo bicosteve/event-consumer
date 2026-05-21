@@ -1,6 +1,5 @@
 package com.bix.event_consumer.repositories;
 
-
 import com.bix.event_consumer.events.BetStatusUpdate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,17 +22,16 @@ public class TransactionsRepository {
                 """;
 
         String reference = UUID.randomUUID().toString();
-        String type = "WON-BET";
-
         int rowAffected = this.jdbcTemplate.update(
                 query,
                 bet.getProfileId(),
                 reference,
-                type,
+                bet.getType(),
                 bet.getAmount(),
                 bet.getCurrentStatus(),
                 createdBy,
-                bet.getUpdateAt());
+                bet.getUpdateAt()
+        );
 
         if(rowAffected < 1){
             log.warn(

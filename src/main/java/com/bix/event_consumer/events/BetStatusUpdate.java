@@ -18,6 +18,7 @@ public class BetStatusUpdate {
     private BigDecimal amount;
     private Integer previousStatus;
     private Integer currentStatus;
-    private LocalDateTime updateAt;
     private BigDecimal possibleWin;
+    private Integer type;
+    private LocalDateTime updateAt;
 }
