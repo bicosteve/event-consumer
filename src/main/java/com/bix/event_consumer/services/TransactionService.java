@@ -22,12 +22,12 @@ public class TransactionService {
 
     // to be called in consumer
     public void consumeBetTransactions(BetStatusUpdate bet) {
-        String createdBy = "TRANSACTION-SERVICE";
+        String createdBy = "TRX-SERVICE";
         // We only want to store type 1 transactions
         // these are won amounts
         if(bet.getCurrentStatus() != BetStatus.WON.getStatus() ||
                 bet.getCurrentStatus() != BetStatus.VOID.getStatus()){
-            log.info("Bet status {} does not qualify for transaction", 1);
+            log.info("Bet status {} does not qualify for transaction", bet.getCurrentStatus());
             return;
         }
 
