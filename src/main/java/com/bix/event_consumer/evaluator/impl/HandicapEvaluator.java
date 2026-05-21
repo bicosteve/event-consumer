@@ -31,9 +31,9 @@ public class HandicapEvaluator implements MarketEvaluator {
             }
         }
 
-        int teamIdPick = slip.getTeamId();
+        Integer teamIdPick = slip.getTeamId();
 
-        if(teamIdPick == score.getTeamIdHome()){
+        if(teamIdPick.equals(score.getTeamIdHome()) ){
             double adjustedScoreHome = score.getScoreHome() + handicap;
             log.info(
                     "Handicap evaluation home team={} scoreHome={} handicap={} adjustedScore={} scoreAway={}",
@@ -43,10 +43,10 @@ public class HandicapEvaluator implements MarketEvaluator {
                     adjustedScoreHome,
                     score.getScoreAway()
             );
-            return this.determineStatus(adjustedScoreHome,score.getScoreHome());
+            return this.determineStatus(adjustedScoreHome,score.getScoreAway());
         }
 
-        if(teamIdPick == score.getTeamIdAway()){
+        if(teamIdPick.equals(score.getTeamIdAway())){
             double adjustedScoreAway = score.getScoreAway() + handicap;
             log.info(
                     "Handicap evaluation away team={} scoreAway={} handicap={} adjustedScore={} scoreHome={}",

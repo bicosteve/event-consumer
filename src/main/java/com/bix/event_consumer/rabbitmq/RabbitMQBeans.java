@@ -40,6 +40,42 @@ public class RabbitMQBeans {
     }
 
     @Bean
+    public Queue resultsQueue(){
+        return new Queue(this.rabbitMQConfig.getResults().getQueue());
+    }
+
+    @Bean
+    public TopicExchange resultsExchange(){
+        return new TopicExchange(this.rabbitMQConfig.getResults().getExchange());
+    }
+
+    @Bean
+    public Binding resultsBinding(Queue resultsQueue, TopicExchange resultsExchange){
+        return BindingBuilder
+                .bind(resultsQueue)
+                .to(resultsExchange)
+                .with(this.rabbitMQConfig.getResults().getRoutingKey());
+    }
+
+    @Bean
+    public Queue transactionsQueue(){
+        return new Queue(this.rabbitMQConfig.getTransactions().getQueue());
+    }
+
+    @Bean
+    public TopicExchange transactionsExchange(){
+        return new TopicExchange(this.rabbitMQConfig.getTransactions().getExchange());
+    }
+
+    @Bean
+    Binding transactionsBinding(Queue transactionsQueue, TopicExchange transactionsExchange){
+        return BindingBuilder
+                .bind(transactionsQueue)
+                .to(transactionsExchange)
+                .with(this.rabbitMQConfig.getTransactions().getRoutingKey());
+    }
+
+    @Bean
     public MessageConverter messageConverter(ObjectMapper objectMapper){
         return new Jackson2JsonMessageConverter(objectMapper);
     }
