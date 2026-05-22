@@ -26,60 +26,9 @@
         </encoder>
     </appender>
 
-    <!-- Daily Rolling File Appender for ALL LOGS -->
-    <appender name="FILE_ALL" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_FILE}.log</file>
-        <rollingPolicy
-                class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- rotate daily - filename - date -->
-            <fileNamePattern>${LOG_FILE}.%d{dd-MM-yyyy}.%i.log</fileNamePattern>
-            <maxFileSize>${MAX_SIZE}</maxFileSize>
-            <maxHistory>${MAX_HISTORY}</maxHistory>
-            <!--Total log size cap-->
-            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>${FILE_PATTERN}</pattern>
-        </encoder>
-    </appender>
 
 
-    <!-- Daily Rolling File Appender  — ERRORS ONLY   -->
-    <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_FILE}-error.log</file>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>ERROR</level>
-        </filter>
-        <rollingPolicy
-                class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_FILE}-error.%d{dd-MM-yyyy}.%i.log</fileNamePattern>
-            <maxFileSize>${MAX_SIZE}</maxFileSize>
-            <maxHistory>${MAX_HISTORY}</maxHistory>
-            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>${FILE_PATTERN}</pattern>
-        </encoder>
-    </appender>
-
-    <!-- ASYNC WRAPPER — non-blocking file writes     -->
-    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="FILE_ALL"/>
-        <queueSize>512</queueSize>
-        <discardingThreshold>20</discardingThreshold>
-    </appender>
-
-    <appender name="ASYNC_ERROR" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="FILE_ERROR"/>
-        <queueSize>256</queueSize>
-        <discardingThreshold>20</discardingThreshold>
-    </appender>
-
-    <!-- ─────────────────────────────────────────── -->
-    <!-- LOGGER LEVELS                                -->
-    <!-- ─────────────────────────────────────────── -->
-
-    <!-- Reduce Spring framework noise -->
+    <!-- Reduce Spring logs -->
     <logger name="org.springframework" level="WARN"/>
 
     <!-- Show SQL/JDBC related info -->
@@ -91,7 +40,7 @@
     <!-- RabbitMQ -->
     <logger name="org.springframework.amqp" level="WARN"/>
 
-    <!-- Spring Profiles  -->
+    <!-- Dev profile  -->
     <springProfile name="dev">
         <logger name="com.bixx.event_consumer" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE"/>
@@ -101,18 +50,71 @@
         </root>
     </springProfile>
 
+    <!-- Prod profile -->
     <springProfile name="prod">
-        <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="ASYNC_FILE"/>
-            <appender-ref ref="ASYNC_ERROR"/>
-        </root>
+        <!--File appender for all logs-->
+        <!-- Daily Rolling File Appender for ALL LOGS -->
+        <appender name="FILE_ALL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_FILE}.log</file>
+            <rollingPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <!-- rotate daily - filename - date -->
+                <fileNamePattern>${LOG_FILE}.%d{dd-MM-yyyy}.%i.log</fileNamePattern>
+                <maxFileSize>${MAX_SIZE}</maxFileSize>
+                <maxHistory>${MAX_HISTORY}</maxHistory>
+                <!--Total log size cap-->
+                <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${FILE_PATTERN}</pattern>
+            </encoder>
+        </appender>
 
+        <!-- Daily Rolling File Appender for Error LOGS -->
+        <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_FILE}-error.log</file>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>ERROR</level>
+            </filter>
+            <rollingPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_FILE}-error.%d{dd-MM-yyyy}.%i.log</fileNamePattern>
+                <maxFileSize>${MAX_SIZE}</maxFileSize>
+                <maxHistory>${MAX_HISTORY}</maxHistory>
+                <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${FILE_PATTERN}</pattern>
+            </encoder>
+        </appender>
+
+        <!--Async wrapper for all logs-->
+        <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="FILE_ALL"/>
+            <queueSize>512</queueSize>
+            <discardingThreshold>20</discardingThreshold>
+        </appender>
+
+        <!--Async wrapper for error logs-->
+        <appender name="ASYNC_ERROR" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="FILE_ERROR"/>
+            <queueSize>256</queueSize>
+            <discardingThreshold>20</discardingThreshold>
+        </appender>
+
+        <!--Application Logger-->
         <logger name="com.bixx.event_consumer" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="ASYNC_FILE"/>
             <appender-ref ref="ASYNC_ERROR"/>
         </logger>
+
+        <!--Root logger-->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </root>
     </springProfile>
 
 </configuration>
