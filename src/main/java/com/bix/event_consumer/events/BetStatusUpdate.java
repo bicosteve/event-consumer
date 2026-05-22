@@ -20,5 +20,6 @@ public class BetStatusUpdate {
     private Integer currentStatus;
     private BigDecimal possibleWin;
     private Integer type;
+    private String reference;
     private LocalDateTime updateAt;
 }

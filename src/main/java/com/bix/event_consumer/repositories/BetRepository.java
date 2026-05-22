@@ -8,12 +8,10 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,25 +21,27 @@ public class BetRepository{
 
     private final RowMapper<Bet> betRowMapper = (rs, rowNumber)->{
         Bet bet = new Bet();
+        bet.setBetId(rs.getLong("bet_id"));
         bet.setProfileId(rs.getLong("profile_id"));
-        bet.setStatus(rs.getInt("status"));
+        bet.setStake(rs.getBigDecimal("stake"));
         bet.setIsBonus(rs.getInt("is_bonus"));
         bet.setStatus(rs.getInt("status"));
         bet.setTotalOdds(rs.getBigDecimal("total_odds"));
         bet.setPossibleWin(rs.getBigDecimal("possible_win"));
+
         return bet;
     };
 
     public Bet getBetDetails(Long betId){
         String query = """
                 SELECT
+                    bet_id,
                     profile_id,
                     stake,
                     is_bonus,
                     status,
                     total_odds,
-                    possible_win,
-                    created_at
+                    possible_win
                 FROM bets
                 WHERE bet_id = ?
                 """;
@@ -81,15 +81,18 @@ public class BetRepository{
                 throw new RuntimeException("Failed to update bet " + betId + " status to " + status);
             }
 
+            log.info("Building betStatusUpdate using this bet details={}",bet);
+
             return BetStatusUpdate.builder()
                     .betId(betId)
                     .profileId(bet.getProfileId())
                     .amount(bet.getStake())
+                    .possibleWin(bet.getPossibleWin())
                     .previousStatus(bet.getStatus())
                     .currentStatus(status)
+                    .reference(UUID.randomUUID().toString())
                     .updateAt(LocalDateTime.now(ZoneOffset.UTC))
                     .build();
-
         } catch(Exception e){
             log.error(
                     "Error updating bet={} to status={} because of={}",
