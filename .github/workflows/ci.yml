@@ -9,6 +9,9 @@ on:
 env:
   JAVA_VERSION: '21'
   MAVEN_OPTS: '-Xmx1024m'
+  TZ: 'UTC'
+  LANG: 'en_US.UTF-8'
+  LC_ALL: 'en_US.UTF-8'
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -32,65 +35,83 @@ jobs:
       - name: Make mvnw executable
         run: chmod +x mvnw
 
+      - name: Pre-create build directory
+        # `tee` and surefire need target/ to exist before they can write
+        # anything. Doing this up-front guarantees the log + report paths
+        # are valid even if mvnw fails before reaching the test phase.
+        run: mkdir -p target
+
       - name: Run tests
         id: run-tests
+        # Use `|| true` so the parse/upload steps still execute even when
+        # individual test cases fail. The pass-rate gate is enforced in the
+        # next step instead of relying on Maven's exit code alone.
         run: |
           ./mvnw test -B -DfailIfNoTests=false \
-            2>&1 | tee target/test-output.log
+            > target/test-output.log 2>&1 \
+            || echo "Maven exited non-zero (test failures expected); continuing to parse reports."
+        env:
+          TZ: 'UTC'
 
-      - name: Parse test results
+      - name: Parse surefire XML reports
         id: parse
         if: always()
         run: |
-          # Surefire prints lines such as:
-          #   [INFO] Tests run: 220, Failures: 0, Errors: 0, Skipped: 0
-          # We extract the *last* aggregate line from the log.
-          AGGREGATE=$(grep -E "^\[INFO\] Tests run:" target/test-output.log \
-                       | tail -n 1)
+          set -euo pipefail
 
-          if [ -z "$AGGREGATE" ]; then
-            echo "::error::Could not find an aggregate test result line."
-            exit 1
-          fi
+          python3 - <<'PY'
+          import os, sys, glob, xml.etree.ElementTree as ET
 
-          echo "Aggregate line: $AGGREGATE"
+          reports = sorted(glob.glob('target/surefire-reports/TEST-*.xml'))
+          if not reports:
+              print('::error::No surefire XML reports were generated. '
+                    'Check target/test-output.log for the underlying Maven error.',
+                    file=sys.stderr)
+              sys.exit(1)
 
-          TOTAL=$(echo "$AGGREGATE"   | sed -E 's/.*Tests run: ([0-9]+).*/\1/')
-          FAILURES=$(echo "$AGGREGATE" | sed -E 's/.*Failures: ([0-9]+).*/\1/')
-          ERRORS=$(echo "$AGGREGATE"   | sed -E 's/.*Errors: ([0-9]+).*/\1/')
-          SKIPPED=$(echo "$AGGREGATE"  | sed -E 's/.*Skipped: ([0-9]+).*/\1/')
+          total = failures = errors = skipped = 0
+          for path in reports:
+              root = ET.parse(path).getroot()
+              total   += int(root.get('tests',   0))
+              failures += int(root.get('failures', 0))
+              errors   += int(root.get('errors',  0))
+              skipped  += int(root.get('skipped', 0))
 
-          # Effective pass count excludes skipped tests.
-          EFFECTIVE=$(( TOTAL - SKIPPED ))
-          if [ "$EFFECTIVE" -le 0 ]; then
-            PASS_RATE=0
-          else
-            # Use awk for floating-point math.
-            PASS_RATE=$(awk -v e="$EFFECTIVE" \
-                            -v f="$FAILURES" \
-                            -v er="$ERRORS" \
-                            'BEGIN { printf "%.2f", ((e - f - er) * 100.0) / e }')
-          fi
+          # Effective count excludes skipped tests (e.g. @Disabled integration tests).
+          effective = total - skipped
+          if effective <= 0:
+              pass_rate = 0.0
+          else:
+              pass_rate = ((effective - failures - errors) * 100.0) / effective
 
-          # Required: 85%. Compare with awk because bash can't do floats.
-          GATE=$(awk -v p="$PASS_RATE" 'BEGIN { print (p+0 >= 85.0) ? "pass" : "fail" }')
+          gate = 'pass' if pass_rate >= 85.0 else 'fail'
 
-          echo "total=$TOTAL failures=$FAILURES errors=$ERRORS skipped=$SKIPPED"
-          echo "pass_rate=${PASS_RATE}% gate=$GATE"
+          print(f'reports           : {len(reports)}')
+          print(f'total tests       : {total}')
+          print(f'failures          : {failures}')
+          print(f'errors            : {errors}')
+          print(f'skipped           : {skipped}')
+          print(f'effective (run)   : {effective}')
+          print(f'pass_rate         : {pass_rate:.2f}%')
+          print(f'gate              : {gate}')
 
-          {
-            echo "total=$TOTAL"
-            echo "failures=$FAILURES"
-            echo "errors=$ERRORS"
-            echo "skipped=$SKIPPED"
-            echo "pass_rate=$PASS_RATE"
-            echo "gate=$GATE"
-          } >> "$GITHUB_OUTPUT"
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fp:
+              fp.write(f'total={total}\n')
+              fp.write(f'failures={failures}\n')
+              fp.write(f'errors={errors}\n')
+              fp.write(f'skipped={skipped}\n')
+              fp.write(f'pass_rate={pass_rate:.2f}\n')
+              fp.write(f'gate={gate}\n')
+          PY
 
       - name: Enforce 85% pass-rate gate
         if: steps.parse.outputs.gate != 'pass'
         run: |
-          echo "::error title=Test gate failed::Pass rate ${PASS_RATE}% < required 85% (failures=${{ steps.parse.outputs.failures }}, errors=${{ steps.parse.outputs.errors }}, skipped=${{ steps.parse.outputs.skipped }}, total=${{ steps.parse.outputs.total }})"
+          echo "::error title=Test gate failed::Pass rate ${PASS_RATE:-0}% < required 85% \
+            (failures=${{ steps.parse.outputs.failures }}, \
+            errors=${{ steps.parse.outputs.errors }}, \
+            skipped=${{ steps.parse.outputs.skipped }}, \
+            total=${{ steps.parse.outputs.total }})"
           exit 1
 
       - name: Upload Surefire reports
@@ -99,6 +120,15 @@ jobs:
         with:
           name: surefire-reports
           path: target/surefire-reports
+          if-no-files-found: warn
+
+      - name: Upload Maven log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-test-output
+          path: target/test-output.log
+          if-no-files-found: warn
 
   # ---------------------------------------------------------------------------
   # JOB 2: Package the application (depends on the test gate).
