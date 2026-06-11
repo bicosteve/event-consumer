@@ -1,0 +1,148 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  JAVA_VERSION: '21'
+  MAVEN_OPTS: '-Xmx1024m'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # JOB 1: Run the unit-test suite and gate progression on an 85% pass rate.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Unit Tests (>= 85% pass rate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          ./mvnw test -B -DfailIfNoTests=false \
+            2>&1 | tee target/test-output.log
+
+      - name: Parse test results
+        id: parse
+        if: always()
+        run: |
+          # Surefire prints lines such as:
+          #   [INFO] Tests run: 220, Failures: 0, Errors: 0, Skipped: 0
+          # We extract the *last* aggregate line from the log.
+          AGGREGATE=$(grep -E "^\[INFO\] Tests run:" target/test-output.log \
+                       | tail -n 1)
+
+          if [ -z "$AGGREGATE" ]; then
+            echo "::error::Could not find an aggregate test result line."
+            exit 1
+          fi
+
+          echo "Aggregate line: $AGGREGATE"
+
+          TOTAL=$(echo "$AGGREGATE"   | sed -E 's/.*Tests run: ([0-9]+).*/\1/')
+          FAILURES=$(echo "$AGGREGATE" | sed -E 's/.*Failures: ([0-9]+).*/\1/')
+          ERRORS=$(echo "$AGGREGATE"   | sed -E 's/.*Errors: ([0-9]+).*/\1/')
+          SKIPPED=$(echo "$AGGREGATE"  | sed -E 's/.*Skipped: ([0-9]+).*/\1/')
+
+          # Effective pass count excludes skipped tests.
+          EFFECTIVE=$(( TOTAL - SKIPPED ))
+          if [ "$EFFECTIVE" -le 0 ]; then
+            PASS_RATE=0
+          else
+            # Use awk for floating-point math.
+            PASS_RATE=$(awk -v e="$EFFECTIVE" \
+                            -v f="$FAILURES" \
+                            -v er="$ERRORS" \
+                            'BEGIN { printf "%.2f", ((e - f - er) * 100.0) / e }')
+          fi
+
+          # Required: 85%. Compare with awk because bash can't do floats.
+          GATE=$(awk -v p="$PASS_RATE" 'BEGIN { print (p+0 >= 85.0) ? "pass" : "fail" }')
+
+          echo "total=$TOTAL failures=$FAILURES errors=$ERRORS skipped=$SKIPPED"
+          echo "pass_rate=${PASS_RATE}% gate=$GATE"
+
+          {
+            echo "total=$TOTAL"
+            echo "failures=$FAILURES"
+            echo "errors=$ERRORS"
+            echo "skipped=$SKIPPED"
+            echo "pass_rate=$PASS_RATE"
+            echo "gate=$GATE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Enforce 85% pass-rate gate
+        if: steps.parse.outputs.gate != 'pass'
+        run: |
+          echo "::error title=Test gate failed::Pass rate ${PASS_RATE}% < required 85% (failures=${{ steps.parse.outputs.failures }}, errors=${{ steps.parse.outputs.errors }}, skipped=${{ steps.parse.outputs.skipped }}, total=${{ steps.parse.outputs.total }})"
+          exit 1
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+
+  # ---------------------------------------------------------------------------
+  # JOB 2: Package the application (depends on the test gate).
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build JAR
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Build (skip tests, they already passed)
+        run: ./mvnw -B clean package -DskipTests
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-consumer-jar
+          path: target/*.jar
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # JOB 3: PLACEHOLDER - Build & publish a Docker image.
+  # Will be implemented once the CI setup is finalized.
+  # ---------------------------------------------------------------------------
+  docker:
+    name: Build Docker Image (placeholder)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Placeholder
+        run: |
+          echo "Docker image build & publish is not implemented yet."
+          echo "This job is a placeholder for future CI work."
