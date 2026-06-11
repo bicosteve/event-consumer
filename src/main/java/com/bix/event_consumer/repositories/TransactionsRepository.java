@@ -21,11 +21,10 @@ public class TransactionsRepository {
                 VALUES (?,?,?,?,?,?,?)
                 """;
 
-        String reference = UUID.randomUUID().toString();
         int rowAffected = this.jdbcTemplate.update(
                 query,
                 bet.getProfileId(),
-                reference,
+                bet.getReference(),
                 bet.getType(),
                 bet.getAmount(),
                 bet.getCurrentStatus(),
