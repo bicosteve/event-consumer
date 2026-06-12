@@ -1,8 +1,8 @@
 <div align="center">
 
-# Event Consumer — Sportsbook Bet Settlement Engine
+# Event Consumer : Sports Events Consumer And Bet Settlement Engine
 
-### Event-driven Spring Boot service that evaluates open bet slips against live match results, determines win/loss/void outcomes across three market types, and emits wallet transactions correctly, in order, without double-counting.
+#### Event-driven Spring Boot service that consumes sports events with its related data(event, teams, markets, prices, and scores), inserts them into respective tables,evaluates open bet slips against matches outcomes, determines win/loss/void outcomes across three market types, and emits wallet transactions correctly, in order, without double-counting.
 
 ![Java 21](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)
 ![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5.11-6DB33F?logo=springboot&logoColor=white)
