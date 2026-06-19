@@ -1,0 +1,105 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# Data VM bootstrap (Amazon Linux 2023): install MySQL, RabbitMQ and Redis
+# NATIVELY (no Docker), persist their data on a dedicated EBS volume, and
+# create the app database/users. Lives in the PRIVATE subnet.
+# ---------------------------------------------------------------------------
+set -euxo pipefail
+
+dnf update -y
+
+# --- Mount the dedicated data volume at /data ------------------------------
+DATA_DEV=""
+for d in /dev/nvme1n1 /dev/xvdf /dev/sdf; do
+  if [ -b "$d" ]; then DATA_DEV="$d"; break; fi
+done
+
+MOUNT=/data
+mkdir -p "$MOUNT"
+if [ -n "$DATA_DEV" ]; then
+  if ! blkid "$DATA_DEV"; then
+    mkfs -t xfs "$DATA_DEV"
+  fi
+  UUID=$(blkid -s UUID -o value "$DATA_DEV")
+  if ! grep -q "$UUID" /etc/fstab; then
+    echo "UUID=$UUID $MOUNT xfs defaults,nofail 0 2" >> /etc/fstab
+  fi
+  mount -a
+fi
+mkdir -p "$MOUNT/mysql" "$MOUNT/rabbitmq" "$MOUNT/redis"
+
+# ===========================================================================
+# MySQL 8 (community)
+# ===========================================================================
+# AL2023 ships MariaDB; install MySQL community server from Oracle's repo.
+dnf install -y https://dev.mysql.com/get/mysql80-community-release-el9-1.noarch.rpm || true
+dnf install -y --nogpgcheck mysql-community-server
+
+# Point datadir at the persistent volume.
+install -d -o mysql -g mysql "$MOUNT/mysql"
+cat >> /etc/my.cnf <<EOF
+
+[mysqld]
+datadir=$MOUNT/mysql
+bind-address=0.0.0.0
+EOF
+
+# Initialise datadir if empty.
+if [ ! -d "$MOUNT/mysql/mysql" ]; then
+  mysqld --initialize-insecure --user=mysql --datadir="$MOUNT/mysql"
+fi
+
+systemctl enable --now mysqld
+
+# Configure root + app database/user (idempotent-ish).
+mysql --connect-expired-password -uroot <<SQL || true
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${mysql_root_password}';
+FLUSH PRIVILEGES;
+SQL
+
+mysql -uroot -p'${mysql_root_password}' <<SQL
+CREATE DATABASE IF NOT EXISTS \`${db_name}\`;
+CREATE USER IF NOT EXISTS '${db_username}'@'%' IDENTIFIED BY '${db_password}';
+GRANT ALL PRIVILEGES ON \`${db_name}\`.* TO '${db_username}'@'%';
+FLUSH PRIVILEGES;
+SQL
+
+# ===========================================================================
+# RabbitMQ
+# ===========================================================================
+dnf install -y rabbitmq-server
+# Persist Mnesia on the data volume.
+mkdir -p "$MOUNT/rabbitmq"
+echo "RABBITMQ_MNESIA_BASE=$MOUNT/rabbitmq" > /etc/rabbitmq/rabbitmq-env.conf
+chown -R rabbitmq:rabbitmq "$MOUNT/rabbitmq" || true
+
+systemctl enable --now rabbitmq-server
+rabbitmq-plugins enable rabbitmq_management || true
+
+# Create vhost + user with full perms; remove the default guest account.
+rabbitmqctl add_vhost '${rabbitmq_vhost}' || true
+rabbitmqctl add_user '${rabbitmq_username}' '${rabbitmq_password}' || \
+  rabbitmqctl change_password '${rabbitmq_username}' '${rabbitmq_password}'
+rabbitmqctl set_user_tags '${rabbitmq_username}' administrator
+rabbitmqctl set_permissions -p '${rabbitmq_vhost}' '${rabbitmq_username}' ".*" ".*" ".*"
+rabbitmqctl delete_user guest || true
+
+# ===========================================================================
+# Redis
+# ===========================================================================
+dnf install -y redis6 || dnf install -y redis
+REDIS_CONF=/etc/redis6/redis6.conf
+[ -f "$REDIS_CONF" ] || REDIS_CONF=/etc/redis/redis.conf
+
+# Listen on all interfaces (private subnet only), persist to the data volume.
+sed -i 's/^bind .*/bind 0.0.0.0/' "$REDIS_CONF" || true
+sed -i 's/^protected-mode .*/protected-mode no/' "$REDIS_CONF" || true
+sed -i "s|^dir .*|dir $MOUNT/redis|" "$REDIS_CONF" || echo "dir $MOUNT/redis" >> "$REDIS_CONF"
+%{ if redis_password != "" ~}
+sed -i 's/^# *requirepass .*/requirepass ${redis_password}/' "$REDIS_CONF" || echo "requirepass ${redis_password}" >> "$REDIS_CONF"
+%{ endif ~}
+chown -R redis:redis "$MOUNT/redis" || true
+
+systemctl enable --now redis6 || systemctl enable --now redis
+
+echo "Data VM bootstrap complete (MySQL + RabbitMQ + Redis)."
