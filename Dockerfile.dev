@@ -1,0 +1,21 @@
+# Development Dockerfile for event-consumer
+FROM eclipse-temurin:21-jdk
+
+WORKDIR /app
+
+COPY pom.xml .
+COPY .mvn .mvn
+COPY mvnw .
+
+RUN chmod +x mvnw \
+    && ./mvnw dependency:go-offline -B
+
+COPY src ./src
+
+# Dev defaults. APP_PORT feeds application-dev.yaml's `server.port: ${APP_PORT}`.
+ENV SPRING_PROFILES_ACTIVE=dev \
+    APP_PORT=5003
+
+EXPOSE 5003
+
+ENTRYPOINT ["./mvnw", "spring-boot:run"]
