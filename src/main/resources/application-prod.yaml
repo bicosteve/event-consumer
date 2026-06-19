@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: event-consumer
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      keepalive-time: 30_000 # keep connection alive by testing them every 30s
+      minimum-idle: 10 # ensure pool does not die when idle
+
+  sql:
+    init:
+      # Default to "never" in prod so the managed database schema is not
+      # re-initialised on every container start. Override with DB_MODE if needed.
+      mode: ${DB_MODE:never}
+      data-locations: classpath:schema.sql
+
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+
+
+app:
+  rabbitmq:
+    matches:
+      exchange: ${RABBITMQ_MATCHES_EXCHANGE}
+      queue: ${RABBITMQ_MATCHES_QUEUE}
+      routing-key: ${RABBITMQ_MATCHES_ROUTING_KEY}
+    results:
+      exchange: ${RABBITMQ_RESULTS_EXCHANGE}
+      queue: ${RABBITMQ_RESULTS_QUEUE}
+      routing-key: ${RABBITMQ_RESULTS_ROUTING_KEY}
+    transactions:
+      exchange: ${RABBITMQ_TRANSACTIONS_EXCHANGE}
+      queue: ${RABBITMQ_TRANSACTIONS_QUEUE}
+      routing-key: ${RABBITMQ_TRANSACTIONS_ROUTING_KEY}
+    wallets:
+      exchange: ${RABBITMQ_WALLETS_EXCHANGE}
+      queue: ${RABBITMQ_WALLETS_QUEUE}
+      routing-key: ${RABBITMQ_WALLETS_ROUTING_KEY}
+
+server:
+  # Render injects $PORT; the Dockerfile also passes -Dserver.port=$PORT
+  # (which takes precedence over this value). Falls back to APP_PORT, then 5003.
+  port: ${PORT:${APP_PORT:5003}}
+
+
+logging:
+  config: classpath:event-consumer-logback.xml
+  level:
+    root: INFO
+    com.bixx.event_consumer: ${LOGGING_LEVEL:INFO}
+    org.springframework.jdbc: ${LOGGING_LEVEL:INFO}
+    org.apache.coyote: INFO
