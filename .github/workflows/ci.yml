@@ -1,5 +1,4 @@
-name: Test, Build jar, Create Docker image, and Push image to Docker Hub
-  Hub.
+name: Continues Delivery(Test,Build,Push to Docker).
 
 on:
   push:

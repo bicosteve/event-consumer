@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: Deploy the image
 
 on:
   workflow_dispatch:
@@ -29,9 +29,9 @@ jobs:
       - name: Copy deployment files to host VM
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
           source: "docker-compose.prod.yml,alloy/config.alloy"
           target: ${{ secrets.DEPLOY_PATH }}

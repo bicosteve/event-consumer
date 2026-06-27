@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     reference           VARCHAR(100) NOT NULL UNIQUE,
     type                TINYINT NOT NULL DEFAULT 0 CHECK (type IN (0,1,2,3)),
     amount              DECIMAL(10, 2) NOT NULL,
-    status              TINYINT NOT NULL DEFAULT 1 CHECK (status IN (1,2,5,7)),
+    status              TINYINT NOT NULL DEFAULT 0 CHECK (status IN (0,1,2,3,4,5,7,8)),
     created_by          VARCHAR(100) NOT NULL,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 10. Wallet Table
-CREATE TABLE IF NOT EXISTS wallet(
+CREATE TABLE IF NOT EXISTS wallets(
     id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
     profile_id          BIGINT UNSIGNED NOT NULL,
     balance             DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
@@ -186,4 +186,45 @@ CREATE TABLE IF NOT EXISTS wallet(
     CONSTRAINT chk_balance_non_negative CHECK (balance >= 0),
     INDEX idx_wallet_id (id),
     INDEX idx_wallet_profile_id (profile_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS deposits (
+    id                          BIGINT PRIMARY KEY AUTO_INCREMENT,
+    profile_id                  BIGINT UNSIGNED NOT NULL,
+    transaction_ref             VARCHAR(100) NOT NULL UNIQUE,
+    amount                      DECIMAL(10,2) NOT NULL,
+    currency                    VARCHAR(10) DEFAULT 'ETB',
+    checkout_url                TEXT,                           -- Chapa hosted page URL
+    chapa_ref                   VARCHAR(100),                   -- Chapa's own reference
+    status                      TINYINT DEFAULT 0,              -- 0=pending, 1=success, 2=failed
+    created_at                  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (profile_id) REFERENCES profile(profile_id),
+    INDEX idx_deposits_profile_id (profile_id),
+    INDEX idx_deposits_tx_ref (chapa_ref),
+    INDEX idx_deposits_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS withdrawals (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    profile_id      BIGINT UNSIGNED NOT NULL,
+    trx_ref          VARCHAR(100) NOT NULL UNIQUE,
+    amount          DECIMAL(10,2) NOT NULL,
+    currency        VARCHAR(10) DEFAULT 'ETB',
+    account_number  VARCHAR(20) NOT NULL,
+    account_name    VARCHAR(100) NOT NULL,
+    bank_code       VARCHAR(20),
+    channel         VARCHAR(20) NOT NULL,           -- telebirr, mpesa, bank
+    status          TINYINT DEFAULT 0,              -- 0=pending, 1=approved, 2=processing, 3=completed, 4=rejected, 5=failed
+    chapa_ref       VARCHAR(100),
+    reason          VARCHAR(255),                   -- rejection reason
+    approved_by     BIGINT,                         -- admin profileId
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (profile_id) REFERENCES profile(profile_id),
+    INDEX idx_withdrawals_profile_id (profile_id),
+    INDEX idx_withdrawals_status (status),
+    INDEX idx_withdrawals_tx_ref (trx_ref)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
