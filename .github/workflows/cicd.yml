@@ -1,0 +1,331 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - feat/*
+      - fix/*
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name == 'workflow_dispatch' && 'production-deploy' || github.ref }}
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '21'
+  MAVEN_OPTS: '-Xmx1024m'
+  TZ: 'UTC'
+  LANG: 'en_US.UTF-8'
+  LC_ALL: 'en_US.UTF-8'
+  DOCKER_IMAGE: bixoloo/event-consumer
+  JAVA_DISTRIBUTION: 'temurin'
+
+
+jobs:
+  test:
+    name: Unit Tests (100% Pass Rate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Pre-create build directory
+        run: mkdir -p target
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          ./mvnw test -B -DfailIfNoTests=false \
+          > target/test-output.log 2>&1 \
+          || echo "Maven exited non-zero; continuing to parse reports."
+        env:
+          TZ: 'UTC'
+
+      - name: Parse surefire XML reports
+        id: parse
+        if: always()
+        run: |
+          set -euo pipefail
+          
+          python3 - <<'PY'
+          import os, sys, glob, xml.etree.ElementTree as ET
+          
+          reports = sorted(glob.glob('target/surefire-reports/TEST-*.xml'))
+          if not reports:
+          print('::error::No surefire XML reports were generated. Check target/test-output.log.', file=sys.stderr)
+          sys.exit(1)
+          
+          total = failures = errors = skipped = 0
+        
+          for path in reports:
+          root = ET.parse(path).getroot()
+          total += int(root.get('tests', 0))
+          failures += int(root.get('failures', 0))
+          errors += int(root.get('errors', 0))
+          skipped += int(root.get('skipped', 0))
+  
+          effective = total - skipped
+          if effective <= 0:
+          pass_rate = 0.0
+          else:
+          pass_rate = ((effective - failures - errors) * 100.0) / effective
+          
+          gate = 'pass' if pass_rate == 100.0 else 'fail'
+
+          print(f'reports         : {len(reports)}')
+          print(f'total tests     : {total}')
+          print(f'failures        : {failures}')
+          print(f'errors          : {errors}')
+          print(f'skipped         : {skipped}')
+          print(f'effective tests : {effective}')
+          print(f'pass_rate       : {pass_rate:.2f}%')
+          print(f'gate            : {gate}')
+        
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fp:
+           fp.write(f'total={total}\n')
+           fp.write(f'failures={failures}\n')
+           fp.write(f'errors={errors}\n')
+           fp.write(f'skipped={skipped}\n')
+           fp.write(f'pass_rate={pass_rate:.2f}\n')
+           fp.write(f'gate={gate}\n')
+          PY
+
+      - name: Enforce 100% pass-rate gate
+        if: steps.parse.outputs.gate != 'pass'
+        run: |
+          echo "::error title=Test gate failed::Pass rate ${{ steps.parse.outputs.pass_rate }}% < required 85%."
+          echo "Failures: ${{ steps.parse.outputs.failures }}"
+          echo "Errors: ${{ steps.parse.outputs.errors }}"
+          echo "Skipped: ${{ steps.parse.outputs.skipped }}"
+          echo "Total: ${{ steps.parse.outputs.total }}"
+          exit 1
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+          if-no-files-found: warn
+
+      - name: Upload Maven log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-test-output
+          path: target/test-output.log
+          if-no-files-found: warn
+
+  build:
+    name: Build JAR
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: maven
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Build JAR
+        run: ./mvnw -B clean package -DskipTests
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-consumer-jar
+          path: target/*.jar
+          if-no-files-found: error
+
+  docker-build:
+    name: Build Docker Image
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/event-consumer-image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-consumer-image
+          path: /tmp/event-consumer-image.tar
+          retention-days: 1
+          if-no-files-found: error
+
+  docker-push:
+    name: Push to Docker Hub
+    needs: docker-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Push only when:
+    # - code is pushed to main, OR
+    # - workflow is manually dispatched from main.
+    if: >-
+      github.ref == 'refs/heads/main'
+      && (
+      github.event_name == 'push'
+      || github.event_name == 'workflow_dispatch'
+      )
+
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: event-consumer-image
+          path: /tmp
+
+      - name: Load image into Docker
+        run: docker load --input /tmp/event-consumer-image.tar
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag and push image to Docker Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+  
+          SHA_TAG="${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
+          LATEST_TAG="${{ env.DOCKER_IMAGE }}:latest"
+          
+          echo "Pushing ${SHA_TAG}"
+          docker push "${SHA_TAG}"
+          
+          echo "Tagging and pushing ${LATEST_TAG}"
+          docker tag "${SHA_TAG}" "${LATEST_TAG}"
+          docker push "${LATEST_TAG}"
+          
+          echo "Successfully pushed:"
+          echo " - ${SHA_TAG}"
+          echo " - ${LATEST_TAG}"
+
+  deploy-to-prod:
+    name: Deploy to Production
+    needs: docker-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: prod
+
+    # Manually deploy from main with dispatch event.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy deployment files to host VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          source: "docker-compose.prod.yml,alloy/config.alloy"
+          target: ${{ secrets.DEPLOY_PATH }}
+          overwrite: true
+
+      - name: Pull the image and restart the stack
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          envs: DOCKER_IMAGE,IMAGE_TAG
+          script: |
+            set -euo pipefail
+  
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            
+            cd "${DEPLOY_PATH}"
+            
+            if [ ! -f .env ]; then
+            echo "::error::.env not found in ${DEPLOY_PATH}. Create it before deploying."
+            exit 1
+            fi
+            
+            export DOCKER_IMAGE="${DOCKER_IMAGE}"
+            export IMAGE_TAG="${IMAGE_TAG}"
+
+            echo "Deploying image: ${DOCKER_IMAGE}:${IMAGE_TAG}"
+          
+            echo "Pulling image from Docker Hub..."
+            docker compose -f docker-compose.prod.yml --env-file .env pull
+            
+            echo "Starting/recreating stack..."
+            docker compose -f docker-compose.prod.yml --env-file .env up -d --remove-orphans
+            
+            echo "Restarting Alloy to reload config..."
+            docker compose -f docker-compose.prod.yml --env-file .env restart alloy || true
+            
+            echo "Pruning dangling images..."
+            docker image prune -f
+            
+            echo "Current status:"
+            docker compose -f docker-compose.prod.yml --env-file .env ps
+            
+            echo "Recent event-consumer logs:"
+            docker logs event-consumer --tail=30 || true
+            
+            echo "Recent Alloy logs:"
+            docker logs event-consumer-alloy --tail=30 || true
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "### Production deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: \`${{ env.DOCKER_IMAGE }}:${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Also tagged as: \`${{ env.DOCKER_IMAGE }}:latest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SSH user: \`${{ secrets.VM_USER }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Triggered by: \`${{ github.actor }}\`" >> "$GITHUB_STEP_SUMMARY"
