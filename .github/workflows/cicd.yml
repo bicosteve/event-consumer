@@ -1,4 +1,4 @@
-name: Continues Delivery(Test,Build,Push to Docker).
+name: CI/CD Pipeline
 
 on:
   push:
@@ -11,21 +11,27 @@ on:
     branches:
       - main
 
-env:
-  JAVA_VERSION: '21'
-  MAVEN_OPTS: '-Xmx1024m'
-  TZ: 'UTC'
-  LANG: 'en_US.UTF-8'
-  LC_ALL: 'en_US.UTF-8'
-  DOCKER_IMAGE: bixoloo/event-consumer
+  workflow_dispatch:
 
+concurrency:
+  group: ${{ github.event_name == 'workflow_dispatch' && 'production-deploy' || github.ref }}
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: "21"
+  MAVEN_OPTS: "-Xmx1024m"
+  TZ: "UTC"
+  LANG: "en_US.UTF-8"
+  LC_ALL: "en_US.UTF-8"
+  DOCKER_IMAGE: bixoloo/event-consumer
+  JAVA_DISTRIBUTION: "temurin"
 
 jobs:
-  # JOB 1: Run the unit-test suite and gate progression on an 85% pass rate.
   test:
-    name: Unit Tests (>= 85% pass rate)
+    name: Unit Tests (100% Pass Rate)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,7 +40,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
 
       - name: Make mvnw executable
@@ -48,9 +54,9 @@ jobs:
         run: |
           ./mvnw test -B -DfailIfNoTests=false \
             > target/test-output.log 2>&1 \
-            || echo "Maven exited non-zero (test failures expected); continuing to parse reports."
+            || echo "Maven exited non-zero; continuing to parse reports."
         env:
-          TZ: 'UTC'
+          TZ: "UTC"
 
       - name: Parse surefire XML reports
         id: parse
@@ -63,36 +69,34 @@ jobs:
 
           reports = sorted(glob.glob('target/surefire-reports/TEST-*.xml'))
           if not reports:
-              print('::error::No surefire XML reports were generated. '
-                    'Check target/test-output.log for the underlying Maven error.',
-                    file=sys.stderr)
+              print('::error::No surefire XML reports were generated. Check target/test-output.log.', file=sys.stderr)
               sys.exit(1)
 
           total = failures = errors = skipped = 0
+
           for path in reports:
               root = ET.parse(path).getroot()
-              total   += int(root.get('tests',   0))
+              total += int(root.get('tests', 0))
               failures += int(root.get('failures', 0))
-              errors   += int(root.get('errors',  0))
-              skipped  += int(root.get('skipped', 0))
+              errors += int(root.get('errors', 0))
+              skipped += int(root.get('skipped', 0))
 
-          # Effective count excludes skipped tests (e.g. @Disabled integration tests).
           effective = total - skipped
           if effective <= 0:
               pass_rate = 0.0
           else:
               pass_rate = ((effective - failures - errors) * 100.0) / effective
 
-          gate = 'pass' if pass_rate >= 85.0 else 'fail'
+          gate = 'pass' if pass_rate == 100.0 else 'fail'
 
-          print(f'reports           : {len(reports)}')
-          print(f'total tests       : {total}')
-          print(f'failures          : {failures}')
-          print(f'errors            : {errors}')
-          print(f'skipped           : {skipped}')
-          print(f'effective (run)   : {effective}')
-          print(f'pass_rate         : {pass_rate:.2f}%')
-          print(f'gate              : {gate}')
+          print(f'reports          : {len(reports)}')
+          print(f'total tests      : {total}')
+          print(f'failures         : {failures}')
+          print(f'errors           : {errors}')
+          print(f'skipped          : {skipped}')
+          print(f'effective tests  : {effective}')
+          print(f'pass_rate        : {pass_rate:.2f}%')
+          print(f'gate             : {gate}')
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as fp:
               fp.write(f'total={total}\n')
@@ -103,14 +107,14 @@ jobs:
               fp.write(f'gate={gate}\n')
           PY
 
-      - name: Enforce 85% pass-rate gate
+      - name: Enforce 100% pass-rate gate
         if: steps.parse.outputs.gate != 'pass'
         run: |
-          echo "::error title=Test gate failed::Pass rate ${PASS_RATE:-0}% < required 85% \
-            (failures=${{ steps.parse.outputs.failures }}, \
-            errors=${{ steps.parse.outputs.errors }}, \
-            skipped=${{ steps.parse.outputs.skipped }}, \
-            total=${{ steps.parse.outputs.total }})"
+          echo "::error title=Test gate failed::Pass rate ${{ steps.parse.outputs.pass_rate }}% < required 85%."
+          echo "Failures: ${{ steps.parse.outputs.failures }}"
+          echo "Errors: ${{ steps.parse.outputs.errors }}"
+          echo "Skipped: ${{ steps.parse.outputs.skipped }}"
+          echo "Total: ${{ steps.parse.outputs.total }}"
           exit 1
 
       - name: Upload Surefire reports
@@ -129,12 +133,12 @@ jobs:
           path: target/test-output.log
           if-no-files-found: warn
 
-  # JOB 2: Package the application if test gate isValid
   build:
     name: Build JAR
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -143,13 +147,13 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
 
       - name: Make mvnw executable
         run: chmod +x mvnw
 
-      - name: Build (skip tests, they already passed)
+      - name: Build JAR
         run: ./mvnw -B clean package -DskipTests
 
       - name: Upload JAR artifact
@@ -159,14 +163,12 @@ jobs:
           path: target/*.jar
           if-no-files-found: error
 
-  # JOB 3: Build the production Docker image and export it as an artifact.
-  # Runs on every pipeline (incl. PRs) so image builds are validated early,
-  # but it never publishes — publishing happens in JOB 4.
   docker-build:
     name: Build Docker Image
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -174,13 +176,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build production image
+      - name: Build production Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: false
-          load: true
           tags: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -194,15 +195,22 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # JOB 4: Push the built image to Docker Hub.
-  # Runs ONLY on pushes to main so PRs and feature branches never publish.
-  # Requires repo secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN.
   docker-push:
     name: Push to Docker Hub
     needs: docker-build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    # Push only when:
+    # - code is pushed to main, OR
+    # - workflow is manually dispatched from main.
+    if: >-
+      github.ref == 'refs/heads/main'
+      && (
+        github.event_name == 'push'
+        || github.event_name == 'workflow_dispatch'
+      )
+
     steps:
       - name: Download image artifact
         uses: actions/download-artifact@v4
@@ -223,6 +231,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           SHA_TAG="${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
           LATEST_TAG="${{ env.DOCKER_IMAGE }}:latest"
 
@@ -237,3 +246,85 @@ jobs:
           echo "  - ${SHA_TAG}"
           echo "  - ${LATEST_TAG}"
 
+  deploy-to-prod:
+    name: Deploy to Production
+    needs: docker-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: prod
+
+    # Manually deploy from main with dispatch event.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy deployment files to host VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          source: "docker-compose.prod.yml,alloy/config.alloy"
+          target: ${{ secrets.DEPLOY_PATH }}
+          overwrite: true
+
+      - name: Pull the image and restart the stack
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          envs: DOCKER_IMAGE,IMAGE_TAG
+          script: |
+            set -euo pipefail
+
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+
+            cd "${DEPLOY_PATH}"
+
+            if [ ! -f .env ]; then
+              echo "::error::.env not found in ${DEPLOY_PATH}. Create it before deploying."
+              exit 1
+            fi
+
+            export DOCKER_IMAGE="${DOCKER_IMAGE}"
+            export IMAGE_TAG="${IMAGE_TAG}"
+
+            echo "Deploying image: ${DOCKER_IMAGE}:${IMAGE_TAG}"
+
+            echo "Pulling image from Docker Hub..."
+            docker compose -f docker-compose.prod.yml --env-file .env pull
+
+            echo "Starting/recreating stack..."
+            docker compose -f docker-compose.prod.yml --env-file .env up -d --remove-orphans
+
+            echo "Restarting Alloy to reload config..."
+            docker compose -f docker-compose.prod.yml --env-file .env restart alloy || true
+
+            echo "Pruning dangling images..."
+            docker image prune -f
+
+            echo "Current status:"
+            docker compose -f docker-compose.prod.yml --env-file .env ps
+
+            echo "Recent event-consumer logs:"
+            docker logs event-consumer --tail=30 || true
+
+            echo "Recent Alloy logs:"
+            docker logs event-consumer-alloy --tail=30 || true
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "### Production deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: \`${{ env.DOCKER_IMAGE }}:${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Also tagged as: \`${{ env.DOCKER_IMAGE }}:latest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SSH user: \`${{ secrets.VM_USER }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Triggered by: \`${{ github.actor }}\`" >> "$GITHUB_STEP_SUMMARY"

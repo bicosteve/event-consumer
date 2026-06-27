@@ -7,8 +7,6 @@ FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /app
 
-# Copy only the files needed to resolve dependencies first so this layer is
-# cached and re-used whenever the source changes but dependencies do not.
 COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw .
@@ -17,9 +15,9 @@ RUN chmod +x mvnw
 
 RUN ./mvnw dependency:go-offline -B
 
-# Copy the source and build the application.
 COPY src ./src
 
+# Build the app
 RUN ./mvnw clean package -DskipTests -B
 
 
@@ -28,12 +26,11 @@ FROM eclipse-temurin:21-jre-jammy AS runtime
 
 WORKDIR /app
 
-# Create an unprivileged user and a writable logs directory.
 RUN useradd -r -u 1001 appusr \
     && mkdir -p /app/logs \
     && chown -R appusr:appusr /app
 
-# Copy only the built artifact from the builder stage.
+
 COPY --from=builder /app/target/*.jar event-consumer.jar
 
 # Production runtime defaults.
@@ -46,13 +43,10 @@ ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0" 
     SPRING_PROFILES_ACTIVE=prod \
     APP_PORT=5003
 
-# Render injects the listening port via $PORT; expose the documented default.
+
 EXPOSE 5003
 
 USER appusr
 
-# Clean exec-form entrypoint: java runs as PID 1 (receives signals for graceful
-# shutdown), no shell, no unquoted variable expansion. JVM flags come from
-# JAVA_TOOL_OPTIONS and the server port is resolved by Spring from $PORT.
 ENTRYPOINT ["java", "-jar", "event-consumer.jar"]
 
