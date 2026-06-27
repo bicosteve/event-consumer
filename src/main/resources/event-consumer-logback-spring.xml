@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <!-- Properties-->
+    <property name="APP_NAME" value="event-consumer"/>
+
+    <!--Set Log Patterns for Console & File -->
+    <property
+            name="CONSOLE_PATTERN"
+            value="%d{yyyy-MM-dd HH:mm:ss} | %-5level | %logger{25} | %M line %L | %msg%n"
+    />
+
+    <!-- Reduce Spring logs -->
+    <logger name="org.springframework" level="WARN"/>
+
+    <!-- Show SQL/JDBC related info -->
+    <logger name="org.springframework.jdbc" level="INFO"/>
+
+    <!-- HikariCP connection pool -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+
+    <!-- RabbitMQ -->
+    <logger name="org.springframework.amqp" level="WARN"/>
+
+    <!-- Dev profile  -->
+    <springProfile name="dev">
+        <!--Console appender used on dev -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+        </appender>
+        <logger name="com.bixx.event_consumer" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+
+        <logger name="com.bixx.event_consumer" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+    </springProfile>
+
+    <!-- Prod profile -->
+    <springProfile name="prod">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <customFields>{"app":"event-consumer","environment":"prod"}</customFields>
+            </encoder>
+        </appender>
+
+        <logger name="com.bixx.event_consumer" level="INFO" additivity="false">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </logger>
+
+        <!--Root logger-->
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+    </springProfile>
+
+</configuration>

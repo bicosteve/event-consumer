@@ -1,0 +1,36 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# Generic app VM bootstrap: install Docker, optionally log in to Docker Hub,
+# write an env file, and run a single container with --restart unless-stopped.
+# Reused by api-gateway, rapid-engine and event-consumer.
+# ---------------------------------------------------------------------------
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker
+systemctl enable --now docker
+
+%{ if dockerhub_username != null && dockerhub_token != null ~}
+echo '${dockerhub_token}' | docker login -u '${dockerhub_username}' --password-stdin
+%{ endif ~}
+
+install -d -m 0700 /etc/${container_name}
+cat > /etc/${container_name}/app.env <<'EOF'
+${env_file}
+EOF
+chmod 0600 /etc/${container_name}/app.env
+
+IMAGE='${image}'
+docker pull "$IMAGE"
+docker rm -f ${container_name} 2>/dev/null || true
+
+docker run -d \
+  --name ${container_name} \
+  --restart unless-stopped \
+  --env-file /etc/${container_name}/app.env \
+%{ if port != null ~}
+  -p ${port}:${port} \
+%{ endif ~}
+  "$IMAGE"
+
+echo "${container_name} bootstrap complete."

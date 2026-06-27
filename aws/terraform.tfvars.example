@@ -1,0 +1,61 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+# Prefer exporting secrets as TF_VAR_* env vars instead of writing them here.
+
+# --- Provider / general ---
+region      = "eu-central-1"
+# aws_profile = "default"
+environment = "dev"
+name_prefix = "sportsbook"
+
+# --- Existing network (ids from your VPC) ---
+vpc_id            = "vpc-xxxxxxxxxxxxxxxxx"
+public_subnet_id  = "subnet-PUBLICxxxxxxxx"  # api-gateway + rapid-engine
+private_subnet_id = "subnet-PRIVATExxxxxxx"  # event-consumer + data VM
+
+# --- Existing security groups (by id) ---
+web_access_sg_id = "sg-WEBxxxxxxxxxxxxx"   # public: app/HTTP ports + SSH
+data_sg_id       = "sg-DATAxxxxxxxxxxxx"   # private: MySQL/RabbitMQ/Redis/SSH within VPC
+
+# --- Access ---
+# Option A: reuse an EXISTING key pair already in AWS (e.g. the one on your other VMs).
+#   Set this to the key pair NAME exactly as it appears in the EC2 console > Key Pairs.
+#   When set, ssh_public_key_path below is ignored and nothing new is imported.
+existing_key_name = "my-existing-keypair"
+
+# Option B: import a NEW key pair from a local public key. Only used when
+#   existing_key_name is left null/commented out.
+# ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+
+# --- Compute ---
+instance_type   = "t2.micro"
+root_volume_gb  = 8
+data_volume_gb  = 20
+
+# --- Container images (pushed by your GitHub Actions) ---
+api_gateway_image    = "bixoloo/api-gateway:latest"
+rapid_engine_image   = "bixoloo/rapid-engine:latest"
+event_consumer_image = "bixoloo/event-consumer:latest"
+# dockerhub_username = "bixoloo"        # only if images are private
+# dockerhub_token    = "dckr_pat_xxx"   # prefer TF_VAR_dockerhub_token
+
+# --- App config ---
+logging_level    = "INFO"
+db_mode          = "always"  # first boot: load schema.sql; then set to "never"
+api_gateway_port = 8080
+
+# --- Data services on the data VM (installed natively) ---
+mysql_root_password = "CHANGE_ME_root"   # prefer TF_VAR_mysql_root_password
+db_name             = "sportsbook"
+db_username         = "appuser"
+db_password         = "CHANGE_ME_app"    # prefer TF_VAR_db_password
+rabbitmq_username   = "appuser"
+rabbitmq_password   = "CHANGE_ME_rmq"    # prefer TF_VAR_rabbitmq_password
+rabbitmq_vhost      = "/"
+redis_password      = "CHANGE_ME_redis"  # prefer TF_VAR_redis_password
+
+# --- Rundown API (rapid-engine source) ---
+rundown_api_key  = "CHANGE_ME"           # prefer TF_VAR_rundown_api_key
+rundown_api_host = "https://therundown-therundown-v1.p.rapidapi.com"
+
+# RabbitMQ topology has defaults; override only if needed:
+# rabbitmq_matches = { exchange = "matches.exchange", queue = "matches.queue", routing_key = "matches.routing.key" }
