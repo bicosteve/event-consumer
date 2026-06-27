@@ -13,10 +13,10 @@ output "event_consumer_private_ip" {
   value       = module.event_consumer.private_ip
 }
 
-output "data_private_ip" {
-  description = "Private IP of the data VM (MySQL/RabbitMQ/Redis). Used by all apps."
-  value       = module.data.private_ip
-}
+# output "data_private_ip" {
+#   description = "Private IP of the data VM (MySQL/RabbitMQ/Redis). Used by all apps."
+#   value       = module.data.private_ip
+# }
 
 output "api_gateway_url" {
   description = "Convenience URL for the api-gateway."

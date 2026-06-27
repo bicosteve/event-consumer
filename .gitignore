@@ -34,6 +34,11 @@ build/
 
 ### event-consumer
 .env
+.env.prod
+.env.*.local
+# keep the templates tracked
+!.env-example
+!.env.prod-example
 
 ## Logs
 logs/*.log

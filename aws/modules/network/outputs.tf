@@ -34,6 +34,8 @@ output "ami_id" {
 }
 
 output "key_name" {
-  description = "Created SSH key pair name."
-  value       = aws_key_pair.this.key_name
+  description = "SSH key pair name attached to the instances (reused existing one, or the newly created one)."
+  value = local.reuse_existing_key ? (
+    data.aws_key_pair.existing[0].key_name
+  ) : aws_key_pair.this[0].key_name
 }

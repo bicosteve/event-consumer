@@ -11,4 +11,5 @@ module "network" {
   web_access_sg_id    = var.web_access_sg_id
   data_sg_id          = var.data_sg_id
   ssh_public_key_path = var.ssh_public_key_path
+  existing_key_name   = var.existing_key_name
 }

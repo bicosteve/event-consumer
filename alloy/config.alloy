@@ -1,0 +1,82 @@
+// =============================================================================
+// Grafana Alloy configuration for event-consumer.
+//
+// Docker stdout approach:
+// event-consumer writes JSON logs to stdout.
+// Docker captures stdout/stderr.
+// Alloy discovers the event-consumer container through Docker socket.
+// Alloy reads Docker logs and sends them to Grafana Cloud Loki.
+//
+// Required env vars from .env:
+// GRAFANA_LOKI_URL
+// GRAFANA_LOKI_USER
+// GRAFANA_LOKI_API_KEY
+// =============================================================================
+
+
+logging {
+     level = "info"
+     format = "logfmt"
+}
+
+discovery.docker "containers" {
+     host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+     targets = discovery.docker.containers.targets
+     rule {
+         source_labels = ["__meta_docker_container_name"]
+         regex = "/event-consumer"
+         action = "keep"
+     }
+
+     rule {
+         source_labels = ["__meta_docker_container_name"]
+         regex = "/(.*)"
+         target_label = "container"
+     }
+
+     rule {
+         target_label = "job"
+         replacement = "event-consumer"
+     }
+
+     rule {
+         target_label = "environment"
+         replacement = "prod"
+     }
+}
+
+loki.source.docker "containers" {
+     host = "unix:///var/run/docker.sock"
+     targets = discovery.relabel.containers.output
+     forward_to = [loki.process.app.receiver]
+}
+
+loki.process "app" {
+     forward_to = [loki.write.grafana_cloud.receiver]
+     stage.json {
+         expressions = {
+             level = "level",
+             logger = "logger_name",
+             message = "message",
+         }
+     }
+
+     stage.labels {
+         values = {
+             level = "",
+         }
+     }
+}
+
+loki.write "grafana_cloud" {
+     endpoint {
+         url = sys.env("GRAFANA_LOKI_URL")
+         basic_auth {
+             username = sys.env("GRAFANA_LOKI_USER")
+             password = sys.env("GRAFANA_LOKI_API_KEY")
+         }
+     }
+}

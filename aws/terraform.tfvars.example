@@ -17,7 +17,14 @@ web_access_sg_id = "sg-WEBxxxxxxxxxxxxx"   # public: app/HTTP ports + SSH
 data_sg_id       = "sg-DATAxxxxxxxxxxxx"   # private: MySQL/RabbitMQ/Redis/SSH within VPC
 
 # --- Access ---
-ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+# Option A: reuse an EXISTING key pair already in AWS (e.g. the one on your other VMs).
+#   Set this to the key pair NAME exactly as it appears in the EC2 console > Key Pairs.
+#   When set, ssh_public_key_path below is ignored and nothing new is imported.
+existing_key_name = "my-existing-keypair"
+
+# Option B: import a NEW key pair from a local public key. Only used when
+#   existing_key_name is left null/commented out.
+# ssh_public_key_path = "~/.ssh/id_ed25519.pub"
 
 # --- Compute ---
 instance_type   = "t2.micro"

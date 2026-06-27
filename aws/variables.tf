@@ -61,8 +61,15 @@ variable "data_sg_id" {
 
 # --- Access ----------------------------------------------------------------
 variable "ssh_public_key_path" {
-  description = "Path to a local SSH public key to install on the instances (e.g. ~/.ssh/id_ed25519.pub)."
+  description = "Path to a local SSH public key to install on the instances (e.g. ~/.ssh/id_ed25519.pub). Only used when existing_key_name is null."
   type        = string
+  default     = null
+}
+
+variable "existing_key_name" {
+  description = "Name of an EC2 key pair that ALREADY exists in this AWS region (e.g. the one you use on your other VMs). Set this to reuse it on the new VMs instead of importing a new public key. When set, ssh_public_key_path is ignored."
+  type        = string
+  default     = null
 }
 
 # --- Compute ---------------------------------------------------------------
@@ -132,7 +139,19 @@ variable "db_mode" {
 variable "api_gateway_port" {
   description = "Port the api-gateway container listens on (also published on the host)."
   type        = number
-  default     = 8080
+  default     = 5001
+}
+
+variable "rapid_engine_port" {
+  description = "Port the api-gateway container listens on (also published on the host)."
+  type        = number
+  default     = 5002
+}
+
+variable "event_consume_port" {
+  description = "Port the api-gateway container listens on (also published on the host)."
+  type        = number
+  default     = 5003
 }
 
 # --- Data services (installed natively on the data VM) ---------------------

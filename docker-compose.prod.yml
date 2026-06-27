@@ -1,0 +1,88 @@
+# =============================================================================
+# Production stack for event-consumer.
+#
+# This compose file runs only:
+# - event-consumer: Spring Boot app, using a pre-built Docker image
+# - alloy: Grafana Alloy sidecar that reads Docker stdout/stderr logs
+#          and ships them to Grafana Cloud Loki
+#
+# MySQL is managed/external.
+# RabbitMQ is managed/external.
+#
+# The app receives DB/RabbitMQ/Grafana configuration from .env on the host.
+#
+# Usage on the production host:
+# docker compose -f docker-compose.prod.yml --env-file .env pull
+# docker compose -f docker-compose.prod.yml --env-file .env up -d
+# =============================================================================
+
+services:
+  event-consumer:
+    image: ${DOCKER_IMAGE:-bixoloo/event-consumer}:${IMAGE_TAG:-latest}
+    container_name: event-consumer
+    restart: unless-stopped
+
+  # For a background consumer, you may not need to expose this publicly.
+  # If you only need health checks from the VM, bind to localhost.
+    ports:
+      - "127.0.0.1:${APP_PORT:-5003}:5003"
+
+    env_file:
+      - .env
+
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      APP_PORT: ${APP_PORT:-5003}
+      LOGGING_LEVEL: ${LOGGING_LEVEL:-INFO}
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -q '[e]vent-consumer'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+    networks:
+      - event-consumer-net
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: event-consumer-alloy
+    restart: unless-stopped
+    depends_on:
+      - event-consumer
+
+    env_file:
+      - .env
+
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
+
+    volumes:
+      # Mount the Alloy pipeline config.
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+
+      # Required for Docker stdout approach.
+      # Alloy uses this to discover containers and read Docker logs.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - event-consumer-net
+
+networks:
+  event-consumer-net:
+    driver: bridge

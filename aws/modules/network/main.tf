@@ -48,7 +48,25 @@ data "aws_ami" "al2023" {
 }
 
 # SSH key pair installed on all instances.
+#
+# Two modes:
+#   1. Reuse an EXISTING key pair (the one already on your other VMs):
+#      set var.existing_key_name -> we just look it up, nothing is created.
+#   2. Create a NEW key pair from a local .pub file:
+#      leave existing_key_name null and set ssh_public_key_path.
+locals {
+  reuse_existing_key = var.existing_key_name != null
+}
+
+# Mode 1: look up the existing key pair so we can validate it exists.
+data "aws_key_pair" "existing" {
+  count    = local.reuse_existing_key ? 1 : 0
+  key_name = var.existing_key_name
+}
+
+# Mode 2: create a new key pair from a local public key.
 resource "aws_key_pair" "this" {
+  count      = local.reuse_existing_key ? 0 : 1
   key_name   = "${var.name_prefix}-key"
   public_key = file(var.ssh_public_key_path)
 }

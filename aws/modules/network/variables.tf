@@ -33,6 +33,13 @@ variable "data_sg_id" {
 }
 
 variable "ssh_public_key_path" {
-  description = "Path to the local SSH public key to install on instances."
+  description = "Path to the local SSH public key to install on instances. Only used when existing_key_name is null (Terraform will create a new key pair)."
   type        = string
+  default     = null
+}
+
+variable "existing_key_name" {
+  description = "Name of an EC2 key pair that ALREADY exists in this AWS region (e.g. the one used on your other VMs). When set, Terraform reuses it instead of creating a new key pair, and ssh_public_key_path is ignored."
+  type        = string
+  default     = null
 }

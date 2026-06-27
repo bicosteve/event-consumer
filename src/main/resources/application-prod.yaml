@@ -21,10 +21,13 @@ spring:
 
   rabbitmq:
     host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT:5672}
+    # TLS/AMQPS port (5671). Plain AMQP (5672) is not used in prod.
+    port: ${RABBITMQ_PORT:5671}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
     virtual-host: ${RABBITMQ_VHOST:/}
+    ssl:
+      enabled: ${RABBITMQ_SSL_ENABLED:true}
 
 
 app:
@@ -53,9 +56,10 @@ server:
 
 
 logging:
-  config: classpath:event-consumer-logback.xml
+  config: classpath:event-consumer-logback-spring.xml
   level:
     root: INFO
     com.bixx.event_consumer: ${LOGGING_LEVEL:INFO}
-    org.springframework.jdbc: ${LOGGING_LEVEL:INFO}
-    org.apache.coyote: INFO
+    org.apache.coyote: WARN
+    org.springframework.jdbc: WARN
+    org.springframework: WARN
