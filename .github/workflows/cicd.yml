@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Test, Validate, Create Jar, Build Image, Publish Image, and Deploy Image.
 
 on:
   push:
@@ -246,7 +246,7 @@ jobs:
           echo "  - ${SHA_TAG}"
           echo "  - ${LATEST_TAG}"
 
-  deploy-to-prod:
+  deploy:
     name: Deploy to Production
     needs: docker-push
     runs-on: ubuntu-latest
