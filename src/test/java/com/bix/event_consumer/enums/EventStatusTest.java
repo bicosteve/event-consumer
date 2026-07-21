@@ -31,11 +31,13 @@ class EventStatusTest {
         assertNotNull(EventStatus.valueOf("STATUS_FINAL_AET"));
         assertNotNull(EventStatus.valueOf("STATUS_FINAL_PEN"));
         assertNotNull(EventStatus.valueOf("STATUS_SHOOTOUT"));
-        assertNotNull(EventStatus.valueOf("STATUS_FORFEIT"));
-    }
+ assertNotNull(EventStatus.valueOf("STATUS_FORFEIT"));
+ assertNotNull(EventStatus.valueOf("STATUS_RETIRED"));
+ assertNotNull(EventStatus.valueOf("STATUS_UNKNOWN"));
+ }
 
-    @Test
-    void testStatusCodes() {
+ @Test
+ void testStatusCodes() {
         assertEquals(0, EventStatus.STATUS_SCHEDULED.getCode());
         assertEquals(1, EventStatus.STATUS_IN_PROGRESS.getCode());
         assertEquals(2, EventStatus.STATUS_FINAL.getCode());
@@ -54,33 +56,27 @@ class EventStatusTest {
         assertEquals(15, EventStatus.STATUS_FINAL_AET.getCode());
         assertEquals(16, EventStatus.STATUS_FINAL_PEN.getCode());
         assertEquals(17, EventStatus.STATUS_SHOOTOUT.getCode());
-        assertEquals(18, EventStatus.STATUS_FORFEIT.getCode());
-    }
+ assertEquals(18, EventStatus.STATUS_FORFEIT.getCode());
+ assertEquals(19, EventStatus.STATUS_RETIRED.getCode());
+ assertEquals(20, EventStatus.STATUS_UNKNOWN.getCode());
+ }
 
-    @ParameterizedTest
+ @ParameterizedTest
     @ValueSource(strings = {"STATUS_FINAL", "status_final", "Status_Final"})
     void testFromValueWithStatusFinal(String value) {
         assertEquals(EventStatus.STATUS_FINAL, EventStatus.fromValue(value));
     }
 
-    @Test
-    void testFromValueWithUnknownThrowsException() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> EventStatus.fromValue("UNKNOWN_STATUS")
-        );
-        assertEquals("Unknown event status UNKNOWN_STATUS ", exception.getMessage());
-    }
+ @ParameterizedTest
+ @ValueSource(strings = {"UNKNOWN_STATUS", "", "STATUS_ABANDONED"})
+ void testFromValueWithUnknownStatusReturnsUnknown(String value) {
+ assertEquals(EventStatus.STATUS_UNKNOWN, EventStatus.fromValue(value));
+ }
 
-    @Test
-    void testFromValueWithNullThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> EventStatus.fromValue(null));
-    }
-
-    @Test
-    void testFromValueWithEmptyStringThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> EventStatus.fromValue(""));
-    }
+ @Test
+ void testFromValueWithNullReturnsUnknown() {
+ assertEquals(EventStatus.STATUS_UNKNOWN, EventStatus.fromValue(null));
+ }
 
     @ParameterizedTest
     @CsvSource({
@@ -99,15 +95,14 @@ class EventStatusTest {
         assertEquals(EventStatus.valueOf(expectedName), EventStatus.fromCode(code));
     }
 
-    @Test
-    void testFromCodeWithUnknownCodeReturnsDefault() {
-        // When an unknown code is provided, the default STATUS_SCHEDULED is returned
-        assertEquals(EventStatus.STATUS_SCHEDULED, EventStatus.fromCode(9999));
-        assertEquals(EventStatus.STATUS_SCHEDULED, EventStatus.fromCode(-1));
-    }
+ @Test
+ void testFromCodeWithUnknownCodeReturnsUnknown() {
+ assertEquals(EventStatus.STATUS_UNKNOWN, EventStatus.fromCode(9999));
+ assertEquals(EventStatus.STATUS_UNKNOWN, EventStatus.fromCode(-1));
+ }
 
-    @Test
-    void testValuesReturnsAllConstants() {
-        assertEquals(19, EventStatus.values().length);
-    }
+ @Test
+ void testValuesReturnsAllConstants() {
+ assertEquals(21, EventStatus.values().length);
+ }
 }

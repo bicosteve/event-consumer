@@ -116,7 +116,7 @@ public class ResultService{
 
     private int evaluateSlip(Slip slip, Score score){
         //Check the void status of a game.
-        // Void if game was canceled, postponed, suspended or forfeited
+        // Void if the game has a terminal void or unknown status.
       if(this.isVoidStatus(score.getEventStatus().getCode())){
           log.info(
                   "Slip {} voided because of event {} status.",
@@ -141,9 +141,11 @@ public class ResultService{
     private boolean isVoidStatus(int eventStatus){
         // Checks whether a bet has void status.
         // If void returns true else returns false
-        return eventStatus == EventStatus.STATUS_CANCELED.getCode()
-                || eventStatus == EventStatus.STATUS_POSTPONED.getCode()
-                || eventStatus == EventStatus.STATUS_SUSPENDED.getCode()
-                || eventStatus == EventStatus.STATUS_FORFEIT.getCode();
+ return eventStatus == EventStatus.STATUS_CANCELED.getCode()
+ || eventStatus == EventStatus.STATUS_POSTPONED.getCode()
+ || eventStatus == EventStatus.STATUS_SUSPENDED.getCode()
+ || eventStatus == EventStatus.STATUS_FORFEIT.getCode()
+ || eventStatus == EventStatus.STATUS_RETIRED.getCode()
+ || eventStatus == EventStatus.STATUS_UNKNOWN.getCode();
     }
 }
