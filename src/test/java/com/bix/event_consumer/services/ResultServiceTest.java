@@ -13,6 +13,8 @@ import com.bix.event_consumer.repositories.ScoreRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -156,8 +158,28 @@ class ResultServiceTest {
                 .updateSlipStatus(10L, SlipStatus.VOID.getStatus());
     }
 
-    @Test
-    void testProcessBetResultsHandlesPostponedEventStatus() {
+ @ParameterizedTest
+ @EnumSource(value = EventStatus.class, names = {"STATUS_RETIRED", "STATUS_UNKNOWN"})
+ void testProcessBetResultsVoidsRetiredOrUnknownEventStatus(EventStatus status) {
+ Score score = buildScore(status);
+ Slip slip = buildSlip(10L, 1L, SlipStatus.PENDING.getStatus(), "moneyline");
+
+ when(scoreRepository.findScoreByEventId("evt-1")).thenReturn(score);
+ when(betSlipRepository.findEventsPendingSlips("evt-1"))
+ .thenReturn(Collections.singletonList(slip));
+ when(betSlipRepository.findBetsSlip(1L))
+ .thenReturn(Collections.singletonList(slip));
+ when(betRepository.updateBetStatus(anyLong(), anyInt()))
+ .thenReturn(BetStatusUpdate.builder().betId(1L).build());
+
+ resultService.processBetResults("evt-1");
+
+ verify(moneylineEvaluator, never()).evaluate(any(), any());
+ verify(betSlipRepository).updateSlipStatus(10L, SlipStatus.VOID.getStatus());
+ }
+
+ @Test
+ void testProcessBetResultsHandlesPostponedEventStatus() {
         Score score = buildScore(EventStatus.STATUS_POSTPONED);
         Slip slip1 = buildSlip(10L, 1L, SlipStatus.PENDING.getStatus(), "moneyline");
 

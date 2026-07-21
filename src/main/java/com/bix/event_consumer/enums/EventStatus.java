@@ -3,7 +3,9 @@ package com.bix.event_consumer.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Getter
 @AllArgsConstructor
 public enum EventStatus {
@@ -25,7 +27,9 @@ public enum EventStatus {
     STATUS_FINAL_AET(15),
     STATUS_FINAL_PEN(16),
     STATUS_SHOOTOUT(17),
-    STATUS_FORFEIT(18);
+    STATUS_FORFEIT(18),
+    STATUS_RETIRED(19),
+    STATUS_UNKNOWN(20);
 
     private final int code;
 
@@ -33,15 +37,17 @@ public enum EventStatus {
     * Used by Jackson for JSON Deserialization
     * Matches the String name (e.g 'STATUS_FINAL') to the constant
     * */
-    @JsonCreator
-    public static EventStatus fromValue(String value){
-        for(EventStatus status : values()){
-            if(status.name().equalsIgnoreCase(value)){
-                return status;
-            }
-        }
-        throw new IllegalArgumentException("Unknown event status %s ".formatted(value));
-    }
+ @JsonCreator
+ public static EventStatus fromValue(String value){
+ for(EventStatus status : values()){
+ if(status.name().equalsIgnoreCase(value)){
+ return status;
+ }
+ }
+
+ log.warn("Unknown upstream event status {}; mapping to {}", value, STATUS_UNKNOWN);
+ return STATUS_UNKNOWN;
+ }
 
     /*
     * Used by JDBC to map the integer column from SQL to Enum constant
@@ -53,7 +59,8 @@ public enum EventStatus {
             }
         }
 
-        return STATUS_SCHEDULED;
-    }
+ log.warn("Unknown persisted event status code {}; mapping to {}", code, STATUS_UNKNOWN);
+ return STATUS_UNKNOWN;
+ }
 
 }

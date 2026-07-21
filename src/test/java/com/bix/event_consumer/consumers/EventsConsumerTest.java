@@ -8,6 +8,8 @@ import com.bix.event_consumer.services.EventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -116,8 +118,29 @@ class EventsConsumerTest {
                 .convertAndSend(anyString(), anyString(), any(Object.class));
     }
 
-    @Test
-    void testConsumeDoesNotPublishWhenStatusIsInProgress() {
+ @ParameterizedTest
+ @EnumSource(value = EventStatus.class, names = {
+ "STATUS_POSTPONED",
+ "STATUS_CANCELED",
+ "STATUS_SUSPENDED",
+ "STATUS_FORFEIT",
+ "STATUS_RETIRED",
+ "STATUS_UNKNOWN"
+ })
+ void testConsumePublishesToResultsQueueWhenStatusVoidsBets(EventStatus status) {
+ Event event = buildEvent(status);
+ when(rabbitMQConfig.getResults()).thenReturn(resultsConfig);
+ when(resultsConfig.getExchange()).thenReturn("results.exchange");
+ when(resultsConfig.getRoutingKey()).thenReturn("results.key");
+
+ eventsConsumer.consume(event);
+
+ verify(rabbitTemplate, times(1))
+ .convertAndSend("results.exchange", "results.key", "evt-1");
+ }
+
+ @Test
+ void testConsumeDoesNotPublishWhenStatusIsInProgress() {
         Event event = buildEvent(EventStatus.STATUS_IN_PROGRESS);
 
         eventsConsumer.consume(event);
