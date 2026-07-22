@@ -12,11 +12,11 @@ import java.util.List;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @Builder
 public class Market {
-    // This should be the market table
-    private Long                id;
+// This should be the market table
+private Long localId;
+private Long id;
     private Integer             marketId;
     private int                 periodId;
     private String              name;
@@ -31,5 +31,26 @@ public class Market {
     @JsonIgnore
     private String              eventId;
 
-    private List<Participant>   participants;
+private List<Participant> participants;
+
+public Market(Long id, Integer marketId, int periodId, String name, String marketDescription,
+              OffsetDateTime createdAt, OffsetDateTime updatedAt, String eventId,
+              List<Participant> participants) {
+this(null, id, marketId, periodId, name, marketDescription, createdAt, updatedAt, eventId, participants);
+}
+
+public Market(Long localId, Long id, Integer marketId, int periodId, String name,
+              String marketDescription, OffsetDateTime createdAt, OffsetDateTime updatedAt,
+              String eventId, List<Participant> participants) {
+this.localId = localId;
+this.id = id;
+this.marketId = marketId;
+this.periodId = periodId;
+this.name = name;
+this.marketDescription = marketDescription;
+this.createdAt = createdAt;
+this.updatedAt = updatedAt;
+this.eventId = eventId;
+this.participants = participants;
+}
 }

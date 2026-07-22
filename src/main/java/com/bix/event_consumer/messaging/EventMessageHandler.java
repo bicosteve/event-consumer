@@ -14,8 +14,8 @@ public class EventMessageHandler {
     private final ResultTriggerPublisher resultTriggerPublisher;
 
     public void handle(Event event) {
-        eventService.consumeEvents(event);
-        if (requiresResultProcessing(event.getScore())) {
+if (eventService.consumeEvents(event) == com.bix.event_consumer.services.EventPersistenceOutcome.PERSISTED
+&& requiresResultProcessing(event.getScore())) {
             resultTriggerPublisher.publish(event.getEventId());
         }
     }

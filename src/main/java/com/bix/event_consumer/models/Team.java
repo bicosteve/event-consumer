@@ -27,8 +27,8 @@ public class Team {
     private String              mascot;
     private String              abbreviation;
     private Integer             conferenceId;
-    private Integer             divisionId;
-    private Integer             ranking;
+private Integer divisionId;
+private Integer ranking;
     private String              record;
     private Boolean             isAway;
     private Boolean             isHome;
