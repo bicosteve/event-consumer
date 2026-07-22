@@ -8,10 +8,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableTransactionManagement
-public class EventConsumerApplication {
+public class Main {
 
 	public static void main(String[] args) {
-		SpringApplication.run(EventConsumerApplication.class, args);
+		SpringApplication.run(Main.class, args);
 	}
 
 }

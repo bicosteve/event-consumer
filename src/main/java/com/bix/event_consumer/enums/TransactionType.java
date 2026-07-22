@@ -3,7 +3,9 @@ package com.bix.event_consumer.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Getter
 @AllArgsConstructor
 public enum TransactionType {
@@ -20,6 +22,7 @@ public enum TransactionType {
                 return type;
             }
         }
+        log.error("Unknown transaction type code {}", value);
         throw new IllegalArgumentException("Unknown transaction type %s ".formatted(value));
     }
 }

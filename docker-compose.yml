@@ -1,20 +1,4 @@
 # Local development stack for event-consumer.
-#
-#   - mysql           : application database (schema.sql is loaded by the app via DB_MODE)
-#   - rabbitmq        : message broker + management UI on http://localhost:15672
-#   - event-consumer  : the Spring Boot app, built from Dockerfile.dev with
-#                       hot-reload (source is bind-mounted, DevTools restarts on change)
-#
-# Usage:
-#   docker compose up --build        # start the whole stack
-#   docker compose down              # stop and remove containers
-#   docker compose down -v           # also wipe the mysql/rabbitmq/m2 volumes
-#
-# Env vars below use the ${VAR:-default} form: values from a local .env file (or
-# your shell) override the defaults, but the stack runs out-of-the-box without one.
-# Note that the service hostnames (mysql / rabbitmq) are the defaults so the app
-# talks to the other containers, not localhost.
-
 services:
   mysql:
     image: mysql:8.4
@@ -41,10 +25,32 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Management UI
+      - "5672:5672"
+      - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: bitnami/kafka:3.8
+    container_name: event-consumer-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,EXTERNAL://:29092,CONTROLLER://:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "29092:29092"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -60,50 +66,58 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     ports:
       - "${APP_PORT:-5003}:5003"
     environment:
-      # --- App / server ---
       SPRING_PROFILES_ACTIVE: dev
       APP_PORT: 5003
       LOGGING_LEVEL: ${LOGGING_LEVEL:-DEBUG}
-
-      # --- Database (points at the mysql service, not localhost) ---
+      MESSAGING_BROKER: ${MESSAGING_BROKER:-rabbitmq}
       DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/sportsbook?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
       DB_USERNAME: ${DB_USERNAME:-root}
       DB_PASSWORD: ${DB_PASSWORD:-rootpass}
       DB_NAME: ${DB_NAME:-sportsbook}
       DB_MODE: ${DB_MODE:-always}
-
-      # --- RabbitMQ connection (points at the rabbitmq service) ---
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_MATCHES_TOPIC: ${KAFKA_MATCHES_TOPIC:-matches.queue}
+      KAFKA_RESULTS_TOPIC: ${KAFKA_RESULTS_TOPIC:-results.queue}
+      KAFKA_TRANSACTIONS_TOPIC: ${KAFKA_TRANSACTIONS_TOPIC:-transactions.queue}
+      KAFKA_MATCHES_GROUP: ${KAFKA_MATCHES_GROUP:-event-consumer-matches}
+      KAFKA_RESULTS_GROUP: ${KAFKA_RESULTS_GROUP:-event-consumer-results}
+      KAFKA_TRANSACTIONS_GROUP: ${KAFKA_TRANSACTIONS_GROUP:-event-consumer-transactions}
+      KAFKA_CREATE_TOPICS: ${KAFKA_CREATE_TOPICS:-true}
       RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
       RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-
-      # --- RabbitMQ: matches ---
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      RABBITMQ_SSL_ENABLED: ${RABBITMQ_SSL_ENABLED:-false}
+      RABBITMQ_PUBLISHER_TIMEOUT_MILLIS: ${RABBITMQ_PUBLISHER_TIMEOUT_MILLIS:-10000}
       RABBITMQ_MATCHES_EXCHANGE: ${RABBITMQ_MATCHES_EXCHANGE:-matches.exchange}
       RABBITMQ_MATCHES_QUEUE: ${RABBITMQ_MATCHES_QUEUE:-matches.queue}
       RABBITMQ_MATCHES_ROUTING_KEY: ${RABBITMQ_MATCHES_ROUTING_KEY:-matches.routing.key}
-
-      # --- RabbitMQ: results ---
+      RABBITMQ_MATCHES_DLX: ${RABBITMQ_MATCHES_DLX:-event-consumer.matches.dlx}
+      RABBITMQ_MATCHES_DLK: ${RABBITMQ_MATCHES_DLK:-event-consumer.matches.dlq}
+      RABBITMQ_MATCHES_DLQ: ${RABBITMQ_MATCHES_DLQ:-event-consumer.matches.dlq}
       RABBITMQ_RESULTS_EXCHANGE: ${RABBITMQ_RESULTS_EXCHANGE:-results.exchange}
       RABBITMQ_RESULTS_QUEUE: ${RABBITMQ_RESULTS_QUEUE:-results.queue}
       RABBITMQ_RESULTS_ROUTING_KEY: ${RABBITMQ_RESULTS_ROUTING_KEY:-results.routing.key}
-
-      # --- RabbitMQ: transactions ---
+      RABBITMQ_RESULTS_DLX: ${RABBITMQ_RESULTS_DLX:-event-consumer.results.dlx}
+      RABBITMQ_RESULTS_DLK: ${RABBITMQ_RESULTS_DLK:-event-consumer.results.dlq}
+      RABBITMQ_RESULTS_DLQ: ${RABBITMQ_RESULTS_DLQ:-event-consumer.results.dlq}
       RABBITMQ_TRANSACTIONS_EXCHANGE: ${RABBITMQ_TRANSACTIONS_EXCHANGE:-transactions.exchange}
       RABBITMQ_TRANSACTIONS_QUEUE: ${RABBITMQ_TRANSACTIONS_QUEUE:-transactions.queue}
       RABBITMQ_TRANSACTIONS_ROUTING_KEY: ${RABBITMQ_TRANSACTIONS_ROUTING_KEY:-transactions.routing.key}
-
-      # --- RabbitMQ: wallets ---
+      RABBITMQ_TRANSACTIONS_DLX: ${RABBITMQ_TRANSACTIONS_DLX:-event-consumer.transactions.dlx}
+      RABBITMQ_TRANSACTIONS_DLK: ${RABBITMQ_TRANSACTIONS_DLK:-event-consumer.transactions.dlq}
+      RABBITMQ_TRANSACTIONS_DLQ: ${RABBITMQ_TRANSACTIONS_DLQ:-event-consumer.transactions.dlq}
       RABBITMQ_WALLETS_EXCHANGE: ${RABBITMQ_WALLETS_EXCHANGE:-wallets.exchange}
       RABBITMQ_WALLETS_QUEUE: ${RABBITMQ_WALLETS_QUEUE:-wallets.queue}
       RABBITMQ_WALLETS_ROUTING_KEY: ${RABBITMQ_WALLETS_ROUTING_KEY:-wallets.routing.key}
     volumes:
-      # Bind-mount source for DevTools hot-reload (edits restart the app).
       - ./src:/app/src
-      # Persist the Maven repo so dependencies aren't re-downloaded each run.
       - event-consumer-m2:/root/.m2
 
 volumes:

@@ -2,51 +2,84 @@ spring:
   application:
     name: event-consumers
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:19092}
+    consumer:
+      auto-offset-reset: earliest
+
+  rabbitmq:
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    ssl:
+      enabled: ${RABBITMQ_SSL_ENABLED:false}
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      keepalive-time: 30_000 # keep connection alive by testing them every 30s
-      minimum-idle: 10 # ensure pool does not die when idle
+      keepalive-time: 30_000
+      minimum-idle: 10
 
   sql:
     init:
       mode: ${DB_MODE}
       data-locations: classpath:schema.sql
 
-
-  rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
-    virtual-host: /
-
-
 app:
-  rabbitmq:
-    matches:
-      exchange: ${RABBITMQ_MATCHES_EXCHANGE}
-      queue: ${RABBITMQ_MATCHES_QUEUE}
-      routing-key: ${RABBITMQ_MATCHES_ROUTING_KEY}
-    results:
-      exchange: ${RABBITMQ_RESULTS_EXCHANGE}
-      queue: ${RABBITMQ_RESULTS_QUEUE}
-      routing-key: ${RABBITMQ_RESULTS_ROUTING_KEY}
-    transactions:
-      exchange: ${RABBITMQ_TRANSACTIONS_EXCHANGE}
-      queue: ${RABBITMQ_TRANSACTIONS_QUEUE}
-      routing-key: ${RABBITMQ_TRANSACTIONS_ROUTING_KEY}
-    wallets:
-      exchange: ${RABBITMQ_WALLETS_EXCHANGE}
-      queue: ${RABBITMQ_WALLETS_QUEUE}
-      routing-key: ${RABBITMQ_WALLETS_ROUTING_KEY}
+  messaging:
+    broker: ${MESSAGING_BROKER}
+    kafka:
+      matches-topic: ${KAFKA_MATCHES_TOPIC:matches.topic}
+      results-topic: ${KAFKA_RESULTS_TOPIC:results.topic}
+      transactions-topic: ${KAFKA_TRANSACTIONS_TOPIC:transactions.topic}
+      matches-group: ${KAFKA_MATCHES_GROUP:event-consumer-matches-grp}
+      results-group: ${KAFKA_RESULTS_GROUP:event-consumer-results-grp}
+      transactions-group: ${KAFKA_TRANSACTIONS_GROUP:event-consumer-transactions-grp}
+      create-topics: ${KAFKA_CREATE_TOPICS:true}
+    rabbitmq:
+      publisher-timeout-millis: ${RABBITMQ_PUBLISHER_TIMEOUT_MILLIS:10000}
+      host: ${RABBITMQ_HOST:localhost}
+      port: ${RABBITMQ_PORT:5672}
+      username: ${RABBITMQ_USERNAME:guest}
+      password: ${RABBITMQ_PASSWORD:guest}
+      virtual-host: /
+      matches:
+        exchange: ${RABBITMQ_MATCHES_EXCHANGE}
+        queue: ${RABBITMQ_MATCHES_QUEUE}
+        routing-key: ${RABBITMQ_MATCHES_ROUTING_KEY}
+        dead-letter-exchange: ${RABBITMQ_MATCHES_DLX:event-consumer.matches.dlx}
+        dead-letter-routing-key: ${RABBITMQ_MATCHES_DLK:event-consumer.matches.dlq}
+        dead-letter-queue: ${RABBITMQ_MATCHES_DLQ:event-consumer.matches.dlq}
+      results:
+        exchange: ${RABBITMQ_RESULTS_EXCHANGE}
+        queue: ${RABBITMQ_RESULTS_QUEUE}
+        routing-key: ${RABBITMQ_RESULTS_ROUTING_KEY}
+        dead-letter-exchange: ${RABBITMQ_RESULTS_DLX:event-consumer.results.dlx}
+        dead-letter-routing-key: ${RABBITMQ_RESULTS_DLK:event-consumer.results.dlq}
+        dead-letter-queue: ${RABBITMQ_RESULTS_DLQ:event-consumer.results.dlq}
+      transactions:
+        exchange: ${RABBITMQ_TRANSACTIONS_EXCHANGE}
+        queue: ${RABBITMQ_TRANSACTIONS_QUEUE}
+        routing-key: ${RABBITMQ_TRANSACTIONS_ROUTING_KEY}
+        dead-letter-exchange: ${RABBITMQ_TRANSACTIONS_DLX:event-consumer.transactions.dlx}
+        dead-letter-routing-key: ${RABBITMQ_TRANSACTIONS_DLK:event-consumer.transactions.dlq}
+        dead-letter-queue: ${RABBITMQ_TRANSACTIONS_DLQ:event-consumer.transactions.dlq}
+      wallets:
+        exchange: ${RABBITMQ_WALLETS_EXCHANGE}
+        queue: ${RABBITMQ_WALLETS_QUEUE}
+        routing-key: ${RABBITMQ_WALLETS_ROUTING_KEY}
 
 server:
   port: ${APP_PORT}
-
 
 logging:
   config: classpath:event-consumer-logback-spring.xml

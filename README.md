@@ -32,8 +32,7 @@ This service is one of three in a sportsbook microservices platform:
 
 ## What it does
 
-`rapid-engine` publishes sports events and their final scores to RabbitMQ. 
-This service:
+`rapid-engine` publishes sports events and final scores through the broker selected by `MESSAGING_BROKER` (`rabbitmq` or `kafka`). This service:
 
 1. Consumes the sport's events.
 2. Consumes the results events.
@@ -80,8 +79,15 @@ multiple games some finished, some still live the resolution logic has to be cor
                                      └─────────────┘
 ```
 
-Every exchange, queue, and routing key is environment-driven the same 
-artifact runs unchanged across dev, staging, and production.
+Every exchange, queue, routing key, Kafka topic, and group is environment-driven; the same artifact runs unchanged across dev, staging, and production.
+
+### Broker selection and ownership
+
+Set `MESSAGING_BROKER=kafka` or `MESSAGING_BROKER=rabbitmq`; exactly the selected transport listeners and publisher are created. Kafka uses `spring.kafka.bootstrap-servers` (`KAFKA_BOOTSTRAP_SERVERS`). Results use an explicit string wire contract; matches and transaction updates remain JSON with their existing keys. `KAFKA_CREATE_TOPICS=true` creates the three input topics and their three-partition `.DLT` topics for local development; production defaults to `false`, so infrastructure must provision `matches.queue`, `results.queue`, and `transactions.queue`, plus their derived `matches.queue.DLT`, `results.queue.DLT`, and `transactions.queue.DLT` topics, each with three partitions. Kafka retries twice with a one-second fixed backoff before publishing to the corresponding `.DLT`.
+
+Rabbit uses Spring Boot's `spring.rabbitmq` connection configuration, including `RABBITMQ_SSL_ENABLED` for TLS. Publishers use correlated confirms, mandatory routing, returns, and `RABBITMQ_PUBLISHER_TIMEOUT_MILLIS`; nacks, returns, and confirm timeouts synchronously fail the caller. Each matches/results/transactions channel has independently configured `*_DLX`, `*_DLK`, and `*_DLQ` values. Listeners retry twice after the first attempt and reject without requeueing, allowing the configured broker DLX to route failures to that channel's DLQ.
+
+Local host processes use Kafka at `localhost:29092`; the Compose application overrides that host setting with `kafka:9092`. RabbitMQ is `localhost:5672` (management UI: `localhost:15672`). Since Compose always runs both brokers, the app starts only after MySQL, Kafka, and RabbitMQ are healthy.
 
 ---
 
@@ -191,7 +197,7 @@ The suite runs in ~10 seconds with no infrastructure dependencies — no Docker,
 | Evaluators | All 3 market strategies against realistic score scenarios |
 | Producers | `TransactionProducer` payload assembly |
 | Events | `BetStatusUpdate` DTO contract |
-| Integration | `EventConsumerApplicationTests` is `@Disabled` kept as a staging smoke test requiring live MySQL and RabbitMQ |
+| Integration | `MainTests` is `@Disabled` kept as a staging smoke test requiring live MySQL and RabbitMQ |
 
 ```bash
 ./mvnw test

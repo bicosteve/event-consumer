@@ -3,7 +3,7 @@ package com.bix.event_consumer.services;
 import com.bix.event_consumer.enums.BetStatus;
 import com.bix.event_consumer.enums.TransactionType;
 import com.bix.event_consumer.events.BetStatusUpdate;
-import com.bix.event_consumer.producer.TransactionProducer;
+import com.bix.event_consumer.messaging.TransactionPublisher;
 import com.bix.event_consumer.repositories.TransactionsRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +21,7 @@ import static org.mockito.Mockito.verify;
 class TransactionServiceTest {
 
     @Mock
-    private TransactionProducer transactionProducer;
+    private TransactionPublisher transactionPublisher;
 
     @Mock
     private TransactionsRepository transactionsRepository;
@@ -37,7 +37,7 @@ class TransactionServiceTest {
 
         transactionService.publishBetStatus(update);
 
-        verify(transactionProducer, times(1)).publish(update);
+        verify(transactionPublisher, times(1)).publish(update);
     }
 
     @Test
@@ -94,21 +94,61 @@ class TransactionServiceTest {
         verify(transactionsRepository, never()).addTransaction(bet, "TRX-SERVICE");
     }
 
-    @Test
-    void testConsumeBetTransactionsUsesArgumentCaptor() {
-        BetStatusUpdate bet = BetStatusUpdate.builder()
-                .betId(1L)
-                .profileId(2L)
-                .currentStatus(BetStatus.WON.getStatus())
-                .build();
+ @Test
+ void testConsumeBetTransactionsUsesArgumentCaptor() {
+ BetStatusUpdate bet = BetStatusUpdate.builder()
+ .betId(1L)
+ .profileId(2L)
+ .currentStatus(BetStatus.WON.getStatus())
+ .build();
 
-        transactionService.consumeBetTransactions(bet);
+ transactionService.consumeBetTransactions(bet);
 
-        ArgumentCaptor<BetStatusUpdate> captor = ArgumentCaptor.forClass(BetStatusUpdate.class);
-        ArgumentCaptor<String> createdByCaptor = ArgumentCaptor.forClass(String.class);
-        verify(transactionsRepository).addTransaction(captor.capture(), createdByCaptor.capture());
-        assertEquals(BetStatus.WON.getStatus(), bet.getCurrentStatus());
-        assertEquals(TransactionType.CREDIT.getStatus(), bet.getType());
-        assertEquals("TRX-SERVICE", createdByCaptor.getValue());
-    }
+ ArgumentCaptor<BetStatusUpdate> captor = ArgumentCaptor.forClass(BetStatusUpdate.class);
+ ArgumentCaptor<String> createdByCaptor = ArgumentCaptor.forClass(String.class);
+ verify(transactionsRepository).addTransaction(captor.capture(), createdByCaptor.capture());
+ assertEquals(BetStatus.WON.getStatus(), bet.getCurrentStatus());
+ assertEquals(TransactionType.CREDIT.getStatus(), bet.getType());
+ assertEquals("TRX-SERVICE", createdByCaptor.getValue());
+ }
+
+ @Test
+ void duplicateWonDeliveriesUseTheSameImmutableSettlementReference() {
+ BetStatusUpdate first = BetStatusUpdate.builder()
+ .betId(42L)
+ .profileId(2L)
+ .currentStatus(BetStatus.WON.getStatus())
+ .reference("random-first-delivery")
+ .build();
+ BetStatusUpdate redelivery = BetStatusUpdate.builder()
+ .betId(42L)
+ .profileId(2L)
+ .currentStatus(BetStatus.WON.getStatus())
+ .reference("random-second-delivery")
+ .build();
+
+ transactionService.consumeBetTransactions(first);
+ transactionService.consumeBetTransactions(redelivery);
+
+ assertEquals("settlement:bet:42:status:5", first.getReference());
+ assertEquals(first.getReference(), redelivery.getReference());
+ }
+
+ @Test
+ void wonAndVoidSettlementsForTheSameBetHaveDifferentReferences() {
+ BetStatusUpdate won = BetStatusUpdate.builder()
+ .betId(42L)
+ .currentStatus(BetStatus.WON.getStatus())
+ .build();
+ BetStatusUpdate voided = BetStatusUpdate.builder()
+ .betId(42L)
+ .currentStatus(BetStatus.VOID.getStatus())
+ .build();
+
+ transactionService.consumeBetTransactions(won);
+ transactionService.consumeBetTransactions(voided);
+
+ assertEquals("settlement:bet:42:status:5", won.getReference());
+ assertEquals("settlement:bet:42:status:7", voided.getReference());
+ }
 }

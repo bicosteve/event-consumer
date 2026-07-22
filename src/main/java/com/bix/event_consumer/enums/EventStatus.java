@@ -37,30 +37,30 @@ public enum EventStatus {
     * Used by Jackson for JSON Deserialization
     * Matches the String name (e.g 'STATUS_FINAL') to the constant
     * */
- @JsonCreator
- public static EventStatus fromValue(String value){
- for(EventStatus status : values()){
- if(status.name().equalsIgnoreCase(value)){
- return status;
- }
- }
-
- log.warn("Unknown upstream event status {}; mapping to {}", value, STATUS_UNKNOWN);
- return STATUS_UNKNOWN;
- }
-
-    /*
-    * Used by JDBC to map the integer column from SQL to Enum constant
-    * */
-    public static EventStatus fromCode(int code){
-        for(EventStatus status : values()){
-            if(status.code == code){
+     @JsonCreator
+     public static EventStatus fromValue(String value){
+         for(EventStatus status : values()){
+             if(status.name().equalsIgnoreCase(value)){
                 return status;
             }
-        }
+         }
 
- log.warn("Unknown persisted event status code {}; mapping to {}", code, STATUS_UNKNOWN);
- return STATUS_UNKNOWN;
- }
+         log.warn("Unknown upstream event status {}; mapping to {}", value, STATUS_UNKNOWN);
+         return STATUS_UNKNOWN;
+     }
+
+
+        // Used by JDBC to map the integer column from SQL to Enum constant
+        public static EventStatus fromCode(int code){
+            for(EventStatus status : values()){
+                if(status.code == code){
+                    return status;
+                }
+            }
+
+             log.warn("Unknown persisted event status code {}; mapping to {}", code, STATUS_UNKNOWN);
+
+             return STATUS_UNKNOWN;
+        }
 
 }

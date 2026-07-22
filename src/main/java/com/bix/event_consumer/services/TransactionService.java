@@ -3,7 +3,7 @@ package com.bix.event_consumer.services;
 import com.bix.event_consumer.enums.BetStatus;
 import com.bix.event_consumer.enums.TransactionType;
 import com.bix.event_consumer.events.BetStatusUpdate;
-import com.bix.event_consumer.producer.TransactionProducer;
+import com.bix.event_consumer.messaging.TransactionPublisher;
 import com.bix.event_consumer.repositories.TransactionsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,12 +13,12 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @RequiredArgsConstructor
 public class TransactionService {
-    private final TransactionProducer transactionProducer;
+    private final TransactionPublisher transactionPublisher;
     private final TransactionsRepository transactionsRepository;
 
     // to be called in producer
     public void publishBetStatus(BetStatusUpdate betStatusUpdate) {
-        this.transactionProducer.publish(betStatusUpdate);
+        this.transactionPublisher.publish(betStatusUpdate);
     }
 
     // to be called in consumer
@@ -44,7 +44,8 @@ public class TransactionService {
             bet.setType(TransactionType.REFUND.getStatus());
         }
 
-        log.info("Received BetStatusUpdate is={}", bet);
-        this.transactionsRepository.addTransaction(bet,createdBy);
+ bet.setReference("settlement:bet:" + bet.getBetId() + ":status:" + bet.getCurrentStatus());
+ log.info("Received BetStatusUpdate is={}", bet);
+ this.transactionsRepository.addTransaction(bet,createdBy);
     }
 }
