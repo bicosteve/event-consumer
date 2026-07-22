@@ -3,9 +3,11 @@ package com.bix.event_consumer.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @AllArgsConstructor
+@Slf4j
 public enum SlipStatus{
     PENDING(1),
     LOST(3),
@@ -21,6 +23,8 @@ public enum SlipStatus{
                 return status;
             }
         }
+
+        log.error("Unknown slip status {} ",value);
         throw new IllegalArgumentException("Unknown slip status %s ".formatted(value));
     }
 }

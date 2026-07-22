@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import com.bix.event_consumer.rabbitmq.ConfirmingRabbitPublisher;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 class TransactionProducerTest {
 
     @Mock
-    private RabbitTemplate rabbitTemplate;
+    private ConfirmingRabbitPublisher confirmingRabbitPublisher;
 
     @Mock
     private RabbitMQConfig rabbitMQConfig;
@@ -31,7 +31,7 @@ class TransactionProducerTest {
 
     @BeforeEach
     void setUp() {
-        transactionProducer = new TransactionProducer(rabbitTemplate, rabbitMQConfig);
+        transactionProducer = new TransactionProducer(confirmingRabbitPublisher, rabbitMQConfig);
     }
 
     @Test
@@ -46,8 +46,8 @@ class TransactionProducerTest {
 
         transactionProducer.publish(event);
 
-        verify(rabbitTemplate, times(1))
-                .convertAndSend("transactions.exchange", "transactions.key", event);
+verify(confirmingRabbitPublisher, times(1))
+.publish("transactions.exchange", "transactions.key", event);
     }
 
     @Test
@@ -62,8 +62,8 @@ class TransactionProducerTest {
         transactionProducer.publish(event1);
         transactionProducer.publish(event2);
 
-        verify(rabbitTemplate, times(2))
-                .convertAndSend(eq("transactions.exchange"), eq("transactions.key"),
-                        any(BetStatusUpdate.class));
+verify(confirmingRabbitPublisher, times(2))
+.publish(eq("transactions.exchange"), eq("transactions.key"),
+any(BetStatusUpdate.class));
     }
 }

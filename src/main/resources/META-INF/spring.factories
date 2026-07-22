@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
+com.bix.event_consumer.messaging.MessagingBrokerAutoConfigurationImportFilter

@@ -15,7 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @SpringBootTest
 @Disabled("Integration test - requires MySQL, RabbitMQ and full .env; run separately from the unit-test suite")
-class EventConsumerApplicationTests {
+class MainTests {
 
 	@Test
 	void contextLoads() {

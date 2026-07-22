@@ -1,25 +1,19 @@
 package com.bix.event_consumer.consumers;
 
-import com.bix.event_consumer.services.ResultService;
+import com.bix.event_consumer.messaging.ResultMessageHandler;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@Slf4j
 @RequiredArgsConstructor
-public class ResultConsumer{
-    private final ResultService resultService;
+@ConditionalOnProperty(name = "app.messaging.broker", havingValue = "rabbitmq")
+public class ResultConsumer {
+    private final ResultMessageHandler resultMessageHandler;
 
-    @RabbitListener(queues = "${app.rabbitmq.results.queue}")
-    public void consume(String eventId){
-        log.info("Received resulting trigger for event {} ",eventId);
-        try{
-            this.resultService.processBetResults(eventId);
-            log.info("Consumed event {} ", eventId);
-        }catch(Exception e){
-            log.error("Error processing results for event {} : {} ", eventId, e.getMessage());
-        }
+    @RabbitListener(queues = "${app.messaging.rabbitmq.results.queue}")
+    public void consume(String eventId) {
+        resultMessageHandler.handle(eventId);
     }
 }
