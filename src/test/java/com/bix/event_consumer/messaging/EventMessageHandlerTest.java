@@ -4,6 +4,7 @@ import com.bix.event_consumer.enums.EventStatus;
 import com.bix.event_consumer.models.Event;
 import com.bix.event_consumer.models.Score;
 import com.bix.event_consumer.services.EventService;
+import com.bix.event_consumer.services.EventPersistenceOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EventMessageHandlerTest {
@@ -29,6 +31,7 @@ class EventMessageHandlerTest {
     @Test
     void handlesFinalEventAndPublishesItsEventIdForSettlement() {
         Event event = event(EventStatus.STATUS_FINAL);
+        when(eventService.consumeEvents(event)).thenReturn(EventPersistenceOutcome.PERSISTED);
         EventMessageHandler handler = new EventMessageHandler(eventService, resultTriggerPublisher);
 
         handler.handle(event);
@@ -45,9 +48,10 @@ class EventMessageHandlerTest {
  "STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_SUSPENDED", "STATUS_FORFEIT",
  "STATUS_RETIRED", "STATUS_UNKNOWN"
  })
- void publishesSettlementTriggerForEveryTerminalOrVoidStatus(EventStatus status) {
- Event event = event(status);
- EventMessageHandler handler = new EventMessageHandler(eventService, resultTriggerPublisher);
+void publishesSettlementTriggerForEveryTerminalOrVoidStatus(EventStatus status) {
+Event event = event(status);
+when(eventService.consumeEvents(event)).thenReturn(EventPersistenceOutcome.PERSISTED);
+EventMessageHandler handler = new EventMessageHandler(eventService, resultTriggerPublisher);
 
  handler.handle(event);
 
@@ -58,6 +62,7 @@ class EventMessageHandlerTest {
  @Test
  void doesNotPublishSettlementTriggerForInProgressEvent() {
         Event event = event(EventStatus.STATUS_IN_PROGRESS);
+        when(eventService.consumeEvents(event)).thenReturn(EventPersistenceOutcome.PERSISTED);
         EventMessageHandler handler = new EventMessageHandler(eventService, resultTriggerPublisher);
 
         handler.handle(event);

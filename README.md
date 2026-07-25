@@ -205,6 +205,24 @@ The suite runs in ~10 seconds with no infrastructure dependencies — no Docker,
 
 ---
 
+## Production schema migration
+
+Production uses `DB_MODE=never`, so `schema.sql` does not evolve an existing managed database. Before enabling event-cache reconciliation in production, run the idempotent MySQL 8 migration once (it is also safe to run repeatedly):
+
+```bash
+mysql --defaults-extra-file=/secure/path/event-consumer.cnf < db/migrations/20260722_add_rundown_event_date_id_index.sql
+```
+
+The migration adds `idx_rundown_event_date_id(event_date,event_id)` only when it is absent. Verify it before deployment with:
+
+```sql
+SHOW INDEX FROM rundown_event WHERE Key_name = 'idx_rundown_event_date_id';
+```
+
+Fresh development databases receive the same index from `src/main/resources/schema.sql`.
+
+---
+
 ## Running locally
 
 **Prerequisites:** Java 21, Maven 3.9+ (or `./mvnw`), a `.env` file

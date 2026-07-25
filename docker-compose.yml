@@ -7,16 +7,13 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpass}
       MYSQL_DATABASE: ${DB_NAME:-sportsbook}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
+    ports: ["3306:3306"]
+    volumes: [mysql-data:/var/lib/mysql]
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-rootpass}"]
       interval: 10s
       timeout: 5s
       retries: 10
-
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: event-consumer-rabbitmq
@@ -24,15 +21,22 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    ports: ["5672:5672", "15672:15672"]
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
-
+  redis:
+    image: redis:7.4-alpine
+    container_name: event-consumer-redis
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   kafka:
     image: bitnami/kafka:3.8
     container_name: event-consumer-kafka
@@ -47,14 +51,12 @@ services:
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-    ports:
-      - "29092:29092"
+    ports: ["29092:29092"]
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 10
-
   event-consumer:
     build:
       context: .
@@ -62,14 +64,11 @@ services:
     container_name: event-consumer-app
     restart: unless-stopped
     depends_on:
-      mysql:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    ports:
-      - "${APP_PORT:-5003}:5003"
+      mysql: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+      kafka: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    ports: ["${APP_PORT:-5003}:5003"]
     environment:
       SPRING_PROFILES_ACTIVE: dev
       APP_PORT: 5003
@@ -80,6 +79,14 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-rootpass}
       DB_NAME: ${DB_NAME:-sportsbook}
       DB_MODE: ${DB_MODE:-always}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_USERNAME: ${REDIS_USERNAME:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_SSL_ENABLED: ${REDIS_SSL_ENABLED:-false}
+      EVENT_CACHE_RECONCILE_INTERVAL: "${EVENT_CACHE_RECONCILE_INTERVAL:-PT5M}"
+      EVENT_CACHE_RECONCILE_BATCH_SIZE: ${EVENT_CACHE_RECONCILE_BATCH_SIZE:-100}
+      EVENT_CACHE_RECONCILE_LOCK_TTL: "${EVENT_CACHE_RECONCILE_LOCK_TTL:-PT4M}"
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
       KAFKA_MATCHES_TOPIC: ${KAFKA_MATCHES_TOPIC:-matches.queue}
       KAFKA_RESULTS_TOPIC: ${KAFKA_RESULTS_TOPIC:-results.queue}
@@ -116,10 +123,7 @@ services:
       RABBITMQ_WALLETS_EXCHANGE: ${RABBITMQ_WALLETS_EXCHANGE:-wallets.exchange}
       RABBITMQ_WALLETS_QUEUE: ${RABBITMQ_WALLETS_QUEUE:-wallets.queue}
       RABBITMQ_WALLETS_ROUTING_KEY: ${RABBITMQ_WALLETS_ROUTING_KEY:-wallets.routing.key}
-    volumes:
-      - ./src:/app/src
-      - event-consumer-m2:/root/.m2
-
+    volumes: [./src:/app/src, event-consumer-m2:/root/.m2]
 volumes:
   mysql-data:
   event-consumer-m2:

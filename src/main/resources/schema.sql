@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS rundown_event(
     event_status        TINYINT DEFAULT 0,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_rundown_event_lookup (event_id)
+    INDEX idx_rundown_event_lookup (event_id),
+INDEX idx_rundown_event_date_id (event_date, event_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2. Teams Table (Allows multiple teams per event)

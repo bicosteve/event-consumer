@@ -2,10 +2,23 @@ spring:
   application:
     name: event-consumer
 
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:19092}
-    consumer:
-      auto-offset-reset: earliest
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:true}
+
+    kafka:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:19092}
+      properties:
+        security.protocol: SASL_SSL
+        sasl.mechanism: SCRAM-SHA-256
+        sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_USERNAME}" password="${KAFKA_PASSWORD}";
+      consumer:
+        auto-offset-reset: earliest
 
   rabbitmq:
     publisher-confirm-type: correlated
@@ -37,6 +50,11 @@ spring:
       data-locations: classpath:schema.sql
 
 app:
+  event-cache:
+    reconcile:
+      interval: ${EVENT_CACHE_RECONCILE_INTERVAL:PT5M}
+      batch-size: ${EVENT_CACHE_RECONCILE_BATCH_SIZE:100}
+      lock-ttl: ${EVENT_CACHE_RECONCILE_LOCK_TTL:PT4M}
   messaging:
     broker: ${MESSAGING_BROKER}
     kafka:

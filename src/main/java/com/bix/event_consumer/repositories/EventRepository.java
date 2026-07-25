@@ -5,11 +5,11 @@ import com.bix.event_consumer.models.Event;
 import com.bix.event_consumer.models.Market;
 import com.bix.event_consumer.models.Participant;
 import com.bix.event_consumer.models.Schedule;
+import com.bix.event_consumer.services.EventPersistenceOutcome;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
@@ -187,27 +187,26 @@ public class EventRepository {
     }
 
 
-    @Transactional
-    public void updateEvent(Event event){
+public EventPersistenceOutcome updateEvent(Event event){
         // 01. Check if an event has markets
         // We do not want events with no markets
         if(event.getMarkets() == null || event.getMarkets().isEmpty()){
-            log.warn("No markets for event {}! Skip", event.getEventId());
-            return;
+log.warn("No markets for event {}! Skip", event.getEventId());
+return EventPersistenceOutcome.SKIPPED;
         }
 
         // 02. Check if an event has teams
         // We do not want events with no teams
         if(event.getTeams() == null || event.getTeams().isEmpty()){
-            log.warn("No teams for event {}! Skip", event.getEventId());
-            return;
+log.warn("No teams for event {}! Skip", event.getEventId());
+return EventPersistenceOutcome.SKIPPED;
         }
 
         // 03. Check if an event has scores
         // We do not want events with no scores
         if(event.getScore() == null){
-            log.warn("No score for event {}! Skip", event.getEventId());
-            return;
+log.warn("No score for event {}! Skip", event.getEventId());
+return EventPersistenceOutcome.SKIPPED;
         }
 
         log.info("Attempt to insert event - {}", event.getEventId());
@@ -217,7 +216,8 @@ public class EventRepository {
         this.insertMarkets(event);
         this.insertScore(event);
 
-        log.info("Event {} inserted", event.getEventId());
+log.info("Event {} inserted", event.getEventId());
+return EventPersistenceOutcome.PERSISTED;
 
-    }
+}
 }

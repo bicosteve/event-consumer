@@ -1,13 +1,11 @@
 package com.bix.event_consumer.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Getter
-@AllArgsConstructor
 public enum EventStatus {
     STATUS_SCHEDULED(0),
     STATUS_IN_PROGRESS(1),
@@ -31,10 +29,14 @@ public enum EventStatus {
     STATUS_RETIRED(19),
     STATUS_UNKNOWN(20);
 
-    private final int code;
+	private final int code;
 
-    /*
-    * Used by Jackson for JSON Deserialization
+	EventStatus(int code) {
+		this.code = code;
+	}
+
+	/*
+	 * Used by Jackson for JSON Deserialization
     * Matches the String name (e.g 'STATUS_FINAL') to the constant
     * */
      @JsonCreator

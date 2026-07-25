@@ -2,6 +2,15 @@ spring:
   application:
     name: event-consumers
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:19092}
     consumer:
@@ -35,15 +44,20 @@ spring:
       data-locations: classpath:schema.sql
 
 app:
+  event-cache:
+    reconcile:
+      interval: ${EVENT_CACHE_RECONCILE_INTERVAL:PT5M}
+      batch-size: ${EVENT_CACHE_RECONCILE_BATCH_SIZE:100}
+      lock-ttl: ${EVENT_CACHE_RECONCILE_LOCK_TTL:PT4M}
   messaging:
     broker: ${MESSAGING_BROKER}
     kafka:
-      matches-topic: ${KAFKA_MATCHES_TOPIC:matches.topic}
-      results-topic: ${KAFKA_RESULTS_TOPIC:results.topic}
-      transactions-topic: ${KAFKA_TRANSACTIONS_TOPIC:transactions.topic}
-      matches-group: ${KAFKA_MATCHES_GROUP:event-consumer-matches-grp}
-      results-group: ${KAFKA_RESULTS_GROUP:event-consumer-results-grp}
-      transactions-group: ${KAFKA_TRANSACTIONS_GROUP:event-consumer-transactions-grp}
+      matches-topic: ${KAFKA_MATCHES_TOPIC:matches.queue}
+      results-topic: ${KAFKA_RESULTS_TOPIC:results.queue}
+      transactions-topic: ${KAFKA_TRANSACTIONS_TOPIC:transactions.queue}
+      matches-group: ${KAFKA_MATCHES_GROUP:event-consumer-matches}
+      results-group: ${KAFKA_RESULTS_GROUP:event-consumer-results}
+      transactions-group: ${KAFKA_TRANSACTIONS_GROUP:event-consumer-transactions}
       create-topics: ${KAFKA_CREATE_TOPICS:true}
     rabbitmq:
       publisher-timeout-millis: ${RABBITMQ_PUBLISHER_TIMEOUT_MILLIS:10000}

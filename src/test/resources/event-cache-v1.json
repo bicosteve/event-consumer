@@ -1,0 +1,80 @@
+{
+  "schema_version" : 1,
+  "id" : 1,
+  "event_id" : "event-provider",
+  "event_uuid" : "event-uuid",
+  "sport_id" : 7,
+  "event_date" : "2030-01-02T03:04:05Z",
+  "season_type" : "regular",
+  "season_year" : 2030,
+  "event_name" : "Lions v Tigers",
+  "event_headline" : "Tonight",
+  "event_status" : 1,
+  "teams" : [ {
+    "id" : 10,
+    "team_id" : 20,
+    "event_id" : "event-provider",
+    "name" : "Lions",
+    "abbreviation" : "LIO",
+    "is_home" : true,
+    "is_away" : false,
+    "league_name" : "Premier"
+  } ],
+  "markets" : [ {
+    "local_id" : 20,
+    "market_id" : 21,
+    "market_type_id" : 22,
+    "period_id" : 1,
+    "name" : "Spread",
+    "market_description" : "Main",
+    "event_id" : "event-provider",
+    "participants" : [ {
+      "participant_id" : 31,
+      "id" : 32,
+      "type" : "team",
+      "name" : "Lions",
+      "market_id" : 21,
+      "lines" : [ {
+        "id" : "line-1",
+        "value" : "-1.5",
+        "prices" : {
+          "9" : {
+            "price_id" : 41,
+            "rundown_id" : "price-provider",
+            "price" : -110,
+            "is_main_line" : true,
+            "odds" : 1.91,
+            "participant_id" : 31,
+            "handicap_value" : "-1.5",
+            "line_id" : "line-1",
+"closed_at" : "2030-01-02T03:05:00Z"
+}
+}
+} ]
+} ]
+},
+{
+"local_id" : 23,
+"market_id" : 24,
+"market_type_id" : 25,
+"period_id" : 0,
+"name" : null,
+"market_description" : null,
+"event_id" : "event-provider",
+"participants" : [ ]
+} ],
+"score" : {
+    "score_id" : 44,
+    "event_id" : "event-provider",
+    "event_status" : 1,
+    "event_status_detail" : "Q1",
+    "team_id_away" : 20,
+    "team_id_home" : 21,
+    "winner_away" : 0,
+    "winner_home" : 1,
+    "score_away" : 1,
+    "score_home" : 2,
+    "game_clock" : 120,
+    "game_period" : 1
+  }
+}
