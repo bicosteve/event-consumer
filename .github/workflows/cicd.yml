@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main
-      - feat/*
-      - fix/*
+      - 'feat/*'
+      - 'fix/*'
 
   pull_request:
     branches:
@@ -28,7 +28,7 @@ env:
 
 jobs:
   test:
-    name: Unit Tests (100% Pass Rate)
+    name: Stage::1 Unit Tests (100% Pass Rate)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -134,7 +134,7 @@ jobs:
           if-no-files-found: warn
 
   build:
-    name: Build JAR
+    name: Stage::2 Build  Jar File
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -164,7 +164,7 @@ jobs:
           if-no-files-found: error
 
   docker-build:
-    name: Build Docker Image
+    name: Stage::3 Build Docker Image
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -196,20 +196,11 @@ jobs:
           if-no-files-found: error
 
   docker-push:
-    name: Push to Docker Hub
+    name: Stage::4 Push Build Image to Image Repository
     needs: docker-build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # Push only when:
-    # - code is pushed to main, OR
-    # - workflow is manually dispatched from main.
-    if: >-
-      github.ref == 'refs/heads/main'
-      && (
-        github.event_name == 'push'
-        || github.event_name == 'workflow_dispatch'
-      )
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Download image artifact
@@ -247,7 +238,7 @@ jobs:
           echo "  - ${LATEST_TAG}"
 
   deploy:
-    name: Deploy to Production
+    name: Stage::5 Deploy the Image to VM
     needs: docker-push
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -258,6 +249,7 @@ jobs:
 
     env:
       IMAGE_TAG: ${{ github.sha }}
+      KAFKA_CA_CERTIFICATE: ${{ secrets.KAFKA_CA_CERTIFICATE }}
 
     steps:
       - name: Checkout repository
@@ -273,6 +265,23 @@ jobs:
           source: "docker-compose.prod.yml,alloy/config.alloy"
           target: ${{ secrets.DEPLOY_PATH }}
           overwrite: true
+
+      - name: Write Kafka CA certificate to VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          envs: KAFKA_CA_CERTIFICATE
+          script: |
+            set -eou pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            mkdir -p certs
+            cat > certs/kafka-ca.pem <<EOF
+            $KAFKA_CA_CERTIFICATE
+            EOF
+            chmod 644 certs/kafka-ca.pem
 
       - name: Pull the image and restart the stack
         uses: appleboy/ssh-action@v1.2.0
