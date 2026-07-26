@@ -22,11 +22,12 @@ services:
     container_name: event-consumer
     restart: unless-stopped
 
-  # For a background consumer, you may not need to expose this publicly.
-  # If you only need health checks from the VM, bind to localhost.
+    # For a background consumer, you may not need to expose this publicly.
+    # If you only need health checks from the VM, bind to localhost.
     ports:
       - "127.0.0.1:${APP_PORT:-5003}:5003"
-
+    volumes:
+      - ./certs/kafka-ca.pem:/app/certs/kafka-ca.pem:ro
     env_file:
       - .env
 
@@ -42,7 +43,7 @@ services:
         max-file: "3"
 
     healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep -q '[e]vent-consumer'"]
+      test: [ "CMD-SHELL", "ps aux | grep -q '[e]vent-consumer'" ]
       interval: 30s
       timeout: 10s
       retries: 5
