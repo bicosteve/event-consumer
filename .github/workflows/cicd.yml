@@ -12,9 +12,15 @@ on:
       - main
 
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy (defaults to latest)'
+        required: false
+        default: 'latest'
+        type: string
 
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && 'production-deploy' || github.ref }}
+  group: "${{ github.event_name == 'workflow_dispatch' && 'production-deploy' || github.ref }}"
   cancel-in-progress: false
 
 env:
@@ -33,6 +39,7 @@ jobs:
 
   test:
     name: Stage::1 Unit Tests (99.9% Pass Rate Gate)
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -93,14 +100,14 @@ jobs:
 
           gate = 'pass' if pass_rate >= 99.9 else 'fail'
 
-          print(f'reports : {len(reports)}')
-          print(f'total tests : {total}')
-          print(f'failures : {failures}')
-          print(f'errors : {errors}')
-          print(f'skipped : {skipped}')
-          print(f'effective tests : {effective}')
-          print(f'pass_rate : {pass_rate:.2f}%')
-          print(f'gate : {gate}')
+          print(f'reports          : {len(reports)}')
+          print(f'total tests      : {total}')
+          print(f'failures         : {failures}')
+          print(f'errors           : {errors}')
+          print(f'skipped          : {skipped}')
+          print(f'effective tests  : {effective}')
+          print(f'pass_rate        : {pass_rate:.2f}%')
+          print(f'gate             : {gate}')
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as fp:
               fp.write(f'total={total}\n')
@@ -140,6 +147,7 @@ jobs:
   build:
     name: Stage::2 Build Jar File
     needs: test
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -175,6 +183,7 @@ jobs:
   docker-build:
     name: Stage::3 Build Docker Image
     needs: build
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -255,14 +264,14 @@ jobs:
   # ==========================================================================
 
   deploy:
-    name: Deploy Image to VM
+    name: Stage5::Deploy Image to VM
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: prod
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
 
     env:
-      IMAGE_TAG: ${{ github.sha }}
+      IMAGE_TAG: "${{ inputs.image_tag || 'latest' }}"
       KAFKA_CA_CERTIFICATE: ${{ secrets.KAFKA_CA_CERTIFICATE }}
 
     steps:
@@ -347,7 +356,7 @@ jobs:
         if: always()
         run: |
           echo "### Production deployment" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Image: \`${{ env.DOCKER_IMAGE }}:${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Also tagged as: \`${{ env.DOCKER_IMAGE }}:latest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: \`${{ env.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- SSH user: \`${{ secrets.VM_USER }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Triggered by: \`${{ github.actor }}\`" >> "$GITHUB_STEP_SUMMARY"
