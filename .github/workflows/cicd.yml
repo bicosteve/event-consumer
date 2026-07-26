@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && 'production-deploy' || github.ref }}
+  group: "${{ github.event_name == 'workflow_dispatch' && 'production-deploy' || github.ref }}"
   cancel-in-progress: false
 
 env:
@@ -33,6 +33,7 @@ jobs:
 
   test:
     name: Stage::1 Unit Tests (99.9% Pass Rate Gate)
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -73,42 +74,42 @@ jobs:
 
           reports = sorted(glob.glob('target/surefire-reports/TEST-*.xml'))
           if not reports:
-              print('::error::No surefire XML reports were generated. Check target/test-output.log.', file=sys.stderr)
-              sys.exit(1)
+            print('::error::No surefire XML reports were generated. Check target/test-output.log.', file=sys.stderr)
+            sys.exit(1)
 
           total = failures = errors = skipped = 0
 
           for path in reports:
-              root = ET.parse(path).getroot()
-              total += int(root.get('tests', 0))
-              failures += int(root.get('failures', 0))
-              errors += int(root.get('errors', 0))
-              skipped += int(root.get('skipped', 0))
+            root = ET.parse(path).getroot()
+            total += int(root.get('tests', 0))
+            failures += int(root.get('failures', 0))
+            errors += int(root.get('errors', 0))
+            skipped += int(root.get('skipped', 0))
 
           effective = total - skipped
           if effective <= 0:
-              pass_rate = 0.0
+            pass_rate = 0.0
           else:
-              pass_rate = ((effective - failures - errors) * 100.0) / effective
+            pass_rate = ((effective - failures - errors) * 100.0) / effective
 
           gate = 'pass' if pass_rate >= 99.9 else 'fail'
 
-          print(f'reports : {len(reports)}')
-          print(f'total tests : {total}')
-          print(f'failures : {failures}')
-          print(f'errors : {errors}')
-          print(f'skipped : {skipped}')
-          print(f'effective tests : {effective}')
-          print(f'pass_rate : {pass_rate:.2f}%')
-          print(f'gate : {gate}')
+          print(f'reports          : {len(reports)}')
+          print(f'total tests      : {total}')
+          print(f'failures         : {failures}')
+          print(f'errors           : {errors}')
+          print(f'skipped          : {skipped}')
+          print(f'effective tests  : {effective}')
+          print(f'pass_rate        : {pass_rate:.2f}%')
+          print(f'gate             : {gate}')
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as fp:
-              fp.write(f'total={total}\n')
-              fp.write(f'failures={failures}\n')
-              fp.write(f'errors={errors}\n')
-              fp.write(f'skipped={skipped}\n')
-              fp.write(f'pass_rate={pass_rate:.2f}\n')
-              fp.write(f'gate={gate}\n')
+            fp.write(f'total={total}\n')
+            fp.write(f'failures={failures}\n')
+            fp.write(f'errors={errors}\n')
+            fp.write(f'skipped={skipped}\n')
+            fp.write(f'pass_rate={pass_rate:.2f}\n')
+            fp.write(f'gate={gate}\n')
           PY
 
       - name: Enforce 99.9% pass-rate gate
@@ -140,6 +141,7 @@ jobs:
   build:
     name: Stage::2 Build Jar File
     needs: test
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -175,6 +177,7 @@ jobs:
   docker-build:
     name: Stage::3 Build Docker Image
     needs: build
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -255,7 +258,7 @@ jobs:
   # ==========================================================================
 
   deploy:
-    name: Deploy Image to VM
+    name: Stage5::Deploy Image to VM
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: prod
