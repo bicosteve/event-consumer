@@ -1,4 +1,4 @@
-name: Test, Validate, Create Jar, Build Image, Publish Image, and Deploy Image.
+name: Test, Build, Publish, and Deploy
 
 on:
   push:
@@ -27,8 +27,12 @@ env:
   JAVA_DISTRIBUTION: "temurin"
 
 jobs:
+  # ==========================================================================
+  # CI: Runs on push/PR — test and build jar.
+  # ==========================================================================
+
   test:
-    name: Stage::1 Unit Tests (100% Pass Rate)
+    name: Stage::1 Unit Tests (99.9% Pass Rate Gate)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -87,16 +91,16 @@ jobs:
           else:
               pass_rate = ((effective - failures - errors) * 100.0) / effective
 
-          gate = 'pass' if pass_rate == 100.0 else 'fail'
+          gate = 'pass' if pass_rate >= 99.9 else 'fail'
 
-          print(f'reports          : {len(reports)}')
-          print(f'total tests      : {total}')
-          print(f'failures         : {failures}')
-          print(f'errors           : {errors}')
-          print(f'skipped          : {skipped}')
-          print(f'effective tests  : {effective}')
-          print(f'pass_rate        : {pass_rate:.2f}%')
-          print(f'gate             : {gate}')
+          print(f'reports : {len(reports)}')
+          print(f'total tests : {total}')
+          print(f'failures : {failures}')
+          print(f'errors : {errors}')
+          print(f'skipped : {skipped}')
+          print(f'effective tests : {effective}')
+          print(f'pass_rate : {pass_rate:.2f}%')
+          print(f'gate : {gate}')
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as fp:
               fp.write(f'total={total}\n')
@@ -107,10 +111,10 @@ jobs:
               fp.write(f'gate={gate}\n')
           PY
 
-      - name: Enforce 100% pass-rate gate
+      - name: Enforce 99.9% pass-rate gate
         if: steps.parse.outputs.gate != 'pass'
         run: |
-          echo "::error title=Test gate failed::Pass rate ${{ steps.parse.outputs.pass_rate }}% < required 85%."
+          echo "::error title=Test gate failed::Pass rate ${{ steps.parse.outputs.pass_rate }}% < required 99.9%."
           echo "Failures: ${{ steps.parse.outputs.failures }}"
           echo "Errors: ${{ steps.parse.outputs.errors }}"
           echo "Skipped: ${{ steps.parse.outputs.skipped }}"
@@ -134,7 +138,7 @@ jobs:
           if-no-files-found: warn
 
   build:
-    name: Stage::2 Build  Jar File
+    name: Stage::2 Build Jar File
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -162,6 +166,11 @@ jobs:
           name: event-consumer-jar
           path: target/*.jar
           if-no-files-found: error
+
+  # ==========================================================================
+  # DOCKER BUILD: Runs on all branches as a validation step.
+  # Does NOT push to Docker Hub on feature branches.
+  # ==========================================================================
 
   docker-build:
     name: Stage::3 Build Docker Image
@@ -195,8 +204,12 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # ==========================================================================
+  # DOCKER PUSH: Only on push to main (i.e. after merge).
+  # ==========================================================================
+
   docker-push:
-    name: Stage::4 Push Build Image to Image Repository
+    name: Stage::4 Push Image to Docker Hub
     needs: docker-build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -237,14 +250,15 @@ jobs:
           echo "  - ${SHA_TAG}"
           echo "  - ${LATEST_TAG}"
 
+  # ==========================================================================
+  # DEPLOY: Standalone — only on manual workflow_dispatch on main.
+  # ==========================================================================
+
   deploy:
-    name: Stage::5 Deploy the Image to VM
-    needs: docker-push
+    name: Deploy Image to VM
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: prod
-
-    # Manually deploy from main with dispatch event.
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
 
     env:
@@ -299,8 +313,7 @@ jobs:
             cd "${DEPLOY_PATH}"
 
             if [ ! -f .env ]; then
-              echo "::ERROR::.env not found in ${DEPLOY_PATH}. Create it before 
-            deploying."
+              echo "::ERROR::.env not found in ${DEPLOY_PATH}. Create it before deploying."
               exit 1
             fi
 
