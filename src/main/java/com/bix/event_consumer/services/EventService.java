@@ -17,15 +17,16 @@ private final EventCacheService eventCacheService;
 
 @Transactional
 public EventPersistenceOutcome consumeEvents(Event event){
-        // Validate the incoming event
         if(event == null){
-log.warn("Event is null. Skipping...");
-return EventPersistenceOutcome.SKIPPED;
-}
+            log.warn("Event is null. Skipping...");
+            return EventPersistenceOutcome.SKIPPED;
+        }
+
 EventPersistenceOutcome outcome = this.eventRepository.updateEvent(event);
-if (outcome == EventPersistenceOutcome.PERSISTED) {
-this.eventCacheService.refreshAfterCommit(event.getEventId());
-}
-return outcome;
+        if (outcome == EventPersistenceOutcome.PERSISTED) {
+            this.eventCacheService.refreshAfterCommit(event.getEventId());
+        }
+
+        return outcome;
     }
 }

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS rundown_event(
     event_name          VARCHAR(255),
     event_headline      VARCHAR(255),
     event_status        TINYINT DEFAULT 0,
+    tournament          VARCHAR(255),
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_rundown_event_lookup (event_id),

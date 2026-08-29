@@ -10,6 +10,7 @@
   "event_name" : "Lions v Tigers",
   "event_headline" : "Tonight",
   "event_status" : 1,
+"tournament" : "UFC",
   "teams" : [ {
     "id" : 10,
     "team_id" : 20,
