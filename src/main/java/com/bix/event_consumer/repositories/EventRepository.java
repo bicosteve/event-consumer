@@ -1,6 +1,7 @@
 package com.bix.event_consumer.repositories;
 
 import com.bix.event_consumer.enums.EventStatus;
+import com.bix.event_consumer.enums.TournamentName;
 import com.bix.event_consumer.models.Event;
 import com.bix.event_consumer.models.Market;
 import com.bix.event_consumer.models.Participant;
@@ -15,37 +16,36 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 @Slf4j
 public class EventRepository {
-    private final JdbcTemplate jdbcTemplate;
-    private final ScoreRepository scoreRepository;
-    private final TeamRepository teamRepository;
-    private final MarketsRepository marketsRepository;
-    private final ParticipantRepository participantRepository;
-    private final PriceRepository priceRepository;
+  private final JdbcTemplate jdbcTemplate;
+  private final ScoreRepository scoreRepository;
+  private final TeamRepository teamRepository;
+  private final MarketsRepository marketsRepository;
+  private final ParticipantRepository participantRepository;
+  private final PriceRepository priceRepository;
 
+  // 01. Insert event
+  private void insertEvent(Event event) {
+    if (event == null) {
+      log.warn("There is no event to be inserted. Abort");
+      return;
+    }
 
-    // 01. Insert event
-    private void insertEvent(Event event){
-        if(event == null){
-            log.warn("There is no event to be inserted. Abort");
-            return;
-        }
+    log.info("Attempting to insert event {}", event.getEventId());
 
-        log.info(
-                "Attempting to insert event {}",
-                event.getEventId()
-        );
+    // a. Get the status from score before inserting
+    EventStatus status = event.getScore() != null ? event.getScore().getEventStatus() : null;
 
-        // a. Get the status from score before inserting
-        EventStatus status = event.getScore() != null ? event.getScore().getEventStatus() : null;
+    // b. Get schedule fields safely
+    Schedule schedule = event.getSchedule();
+    String seasonType = schedule != null ? schedule.getSeasonType() : null;
+    Integer seasonYear = schedule != null ? schedule.getSeasonYear() : null;
+    String eventName = schedule != null ? schedule.getEventName() : null;
+    String eventHeadline = schedule != null ? schedule.getEventHeadline() : null;
+    TournamentName tournament = safeTournament(event.getSportId());
+    log.info("Inserting tournament {}", tournament.getDisplayName());
 
-        // b. Get schedule fields safely
-        Schedule schedule = event.getSchedule();
-        String seasonType = schedule != null ? schedule.getSeasonType() : null;
-        Integer seasonYear = schedule != null ? schedule.getSeasonYear() : null;
-        String eventName = schedule != null ? schedule.getEventName() : null;
-        String eventHeadline = schedule != null ? schedule.getEventHeadline() : null;
-
-        String query = """
+    String query =
+        """
                 INSERT INTO rundown_event(
                     event_id,
                     event_uuid,
@@ -56,9 +56,10 @@ public class EventRepository {
                     event_name,
                     event_headline,
                     event_status,
+                    tournament,
                     created_at,
                     updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) AS new_event
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) AS new_event
                 ON DUPLICATE KEY UPDATE
                     event_uuid      = new_event.event_uuid,
                     sport_id        = new_event.sport_id,
@@ -68,156 +69,163 @@ public class EventRepository {
                     event_name      = new_event.event_name,
                     event_headline  = new_event.event_headline,
                     event_status    = new_event.event_status,
+                    tournament      = new_event.tournament,
                     updated_at      = NOW()
                 """;
 
+    // c. Then insert the event
+    this.jdbcTemplate.update(
+        query,
+        event.getEventId(),
+        event.getEventUuid(),
+        event.getSportId(),
+        event.getEventDate(),
+        seasonType,
+        seasonYear,
+        eventName,
+        eventHeadline,
+        status != null ? status.getCode() : 0,
+        tournament.getDisplayName());
+  }
 
-        // c. Then insert the event
-        this.jdbcTemplate.update(
-                query,
-                event.getEventId(),
-                event.getEventUuid(),
-                event.getSportId(),
-                event.getEventDate(),
-                seasonType,
-                seasonYear,
-                eventName,
-                eventHeadline,
-                status != null ? status.getCode() : 0
-        );
+  // Resolve the tournament name safely; unknown sportIds are stored as NULL
+  // instead of throwing (which would roll back the whole insert).
+  private TournamentName safeTournament(Integer sportId) {
+    try {
+      return TournamentName.getSportsName(sportId);
+    } catch (IllegalArgumentException e) {
+      log.warn("Unrecognized sportId {}; tournament column will be NULL", sportId);
+      return null;
+    }
+  }
 
+  // 02. Insert Teams
+  private void insertTeams(Event event) {
+    if (event.getTeams() == null || event.getTeams().isEmpty()) {
+      log.warn("No teams for event {}. Skip", event.getEventId());
+      return;
     }
 
+    log.info("Inserting {} teams for event {}", event.getTeams().size(), event.getEventId());
 
-    // 02. Insert Teams
-    private void insertTeams(Event event){
-        if(event.getTeams() == null || event.getTeams().isEmpty()){
-            log.warn("No teams for event {}. Skip", event.getEventId());
-            return;
-        }
-
-        log.info(
-                "Inserting {} teams for event {}",
-                event.getTeams().size(),
-                event.getEventId()
-        );
-
-        event.getTeams().forEach(team ->{
-            team.setEventId(event.getEventId());
-            this.teamRepository.addTeam(team);
-        });
-
-    }
-
-    // 03. Insert Markets
-    private void insertMarkets(Event event){
-        if(event.getMarkets() == null || event.getMarkets().isEmpty()){
-            log.warn("No markets for event {}. Skip", event.getEventId());
-            return;
-        }
-
-        log.info("Inserting {} markets for {} event",
-                event.getMarkets().size(), event.getEventId());
-
-        event.getMarkets().forEach(market -> {
-            market.setEventId(event.getEventId());
-            Long marketId = this.marketsRepository.addMarket(market);
-
-            this.insertParticipants(market,marketId);
-        });
-
-    }
-
-    // 04. Insert Scores
-    private void insertScore(Event event){
-        if(event.getScore() == null){
-            log.warn("No scores for event {}. Skip", event.getEventId());
-            return;
-        }
-
-        log.info("Inserting score for event {}", event.getEventId());
-        this.scoreRepository.addScores(event.getScore());
-
-    }
-
-    // 05. Insert Prices/Odds
-    private void insertPrices(Participant participant, Long participantId){
-        if(participant.getLines() == null || participant.getLines().isEmpty()){
-            log.warn("No prices for participant {}. Skip", participant.getParticipantId());
-            return;
-        }
-
-        log.info("Inserting prices for participant {}", participant.getParticipantId());
-
-        participant.getLines().forEach(line -> {
-            // key = 23 which is the  bookmakerId
-            // value = Price(...) the actual price object
-
-            line.getPrices().forEach((bookmakerId, price) ->{
-                price.setParticipantId(participantId);
-                price.setBookMarkerId(Integer.parseInt(bookmakerId)); // "23" -> 23
-                price.setLineId(line.getId());
-                price.setHandicapValue(line.getValue());
-
-                this.priceRepository.addPrice(price);
+    event
+        .getTeams()
+        .forEach(
+            team -> {
+              team.setEventId(event.getEventId());
+              this.teamRepository.addTeam(team);
             });
-        });
+  }
 
-
+  // 03. Insert Markets
+  private void insertMarkets(Event event) {
+    if (event.getMarkets() == null || event.getMarkets().isEmpty()) {
+      log.warn("No markets for event {}. Skip", event.getEventId());
+      return;
     }
 
-    // 06. Insert Participants
-    private void insertParticipants(Market market, Long marketId){
-        if(market.getParticipants() == null || market.getParticipants().isEmpty()){
-            log.warn("No participants for market {}. Skip", marketId);
-            return;
-        }
+    log.info("Inserting {} markets for {} event", event.getMarkets().size(), event.getEventId());
 
-        log.info("Inserting participants {} for market {}",
-                market.getParticipants().size(),
-                marketId);
+    event
+        .getMarkets()
+        .forEach(
+            market -> {
+              market.setEventId(event.getEventId());
+              Long marketId = this.marketsRepository.addMarket(market);
 
-        market.getParticipants().forEach(participant -> {
-            participant.setMarketId(marketId);
-            Long participantId = this.participantRepository.addParticipant(participant);
-            this.insertPrices(participant,participantId);
-        });
+              this.insertParticipants(market, marketId);
+            });
+  }
 
-
+  // 04. Insert Scores
+  private void insertScore(Event event) {
+    if (event.getScore() == null) {
+      log.warn("No scores for event {}. Skip", event.getEventId());
+      return;
     }
 
+    log.info("Inserting score for event {}", event.getEventId());
+    this.scoreRepository.addScores(event.getScore());
+  }
 
-public EventPersistenceOutcome updateEvent(Event event){
-        // 01. Check if an event has markets
-        // We do not want events with no markets
-        if(event.getMarkets() == null || event.getMarkets().isEmpty()){
-log.warn("No markets for event {}! Skip", event.getEventId());
-return EventPersistenceOutcome.SKIPPED;
-        }
+  // 05. Insert Prices/Odds
+  private void insertPrices(Participant participant, Long participantId) {
+    if (participant.getLines() == null || participant.getLines().isEmpty()) {
+      log.warn("No prices for participant {}. Skip", participant.getParticipantId());
+      return;
+    }
 
-        // 02. Check if an event has teams
-        // We do not want events with no teams
-        if(event.getTeams() == null || event.getTeams().isEmpty()){
-log.warn("No teams for event {}! Skip", event.getEventId());
-return EventPersistenceOutcome.SKIPPED;
-        }
+    log.info("Inserting prices for participant {}", participant.getParticipantId());
 
-        // 03. Check if an event has scores
-        // We do not want events with no scores
-        if(event.getScore() == null){
-log.warn("No score for event {}! Skip", event.getEventId());
-return EventPersistenceOutcome.SKIPPED;
-        }
+    participant
+        .getLines()
+        .forEach(
+            line -> {
+              // key = 23 which is the  bookmakerId
+              // value = Price(...) the actual price object
 
-        log.info("Attempt to insert event - {}", event.getEventId());
+              line.getPrices()
+                  .forEach(
+                      (bookmakerId, price) -> {
+                        price.setParticipantId(participantId);
+                        price.setBookMarkerId(Integer.parseInt(bookmakerId)); // "23" -> 23
+                        price.setLineId(line.getId());
+                        price.setHandicapValue(line.getValue());
 
-        this.insertEvent(event);
-        this.insertTeams(event);
-        this.insertMarkets(event);
-        this.insertScore(event);
+                        this.priceRepository.addPrice(price);
+                      });
+            });
+  }
 
-log.info("Event {} inserted", event.getEventId());
-return EventPersistenceOutcome.PERSISTED;
+  // 06. Insert Participants
+  private void insertParticipants(Market market, Long marketId) {
+    if (market.getParticipants() == null || market.getParticipants().isEmpty()) {
+      log.warn("No participants for market {}. Skip", marketId);
+      return;
+    }
 
-}
+    log.info("Inserting participants {} for market {}", market.getParticipants().size(), marketId);
+
+    market
+        .getParticipants()
+        .forEach(
+            participant -> {
+              participant.setMarketId(marketId);
+              Long participantId = this.participantRepository.addParticipant(participant);
+              this.insertPrices(participant, participantId);
+            });
+  }
+
+  public EventPersistenceOutcome updateEvent(Event event) {
+    // 01. Check if an event has markets
+    // We do not want events with no markets
+    if (event.getMarkets() == null || event.getMarkets().isEmpty()) {
+      log.warn("No markets for event {}! Skip", event.getEventId());
+      return EventPersistenceOutcome.SKIPPED;
+    }
+
+    // 02. Check if an event has teams
+    // We do not want events with no teams
+    if (event.getTeams() == null || event.getTeams().isEmpty()) {
+      log.warn("No teams for event {}! Skip", event.getEventId());
+      return EventPersistenceOutcome.SKIPPED;
+    }
+
+    // 03. Check if an event has scores
+    // We do not want events with no scores
+    if (event.getScore() == null) {
+      log.warn("No score for event {}! Skip", event.getEventId());
+      return EventPersistenceOutcome.SKIPPED;
+    }
+
+    log.info("Attempt to insert event - {}", event.getEventId());
+
+    this.insertEvent(event);
+    this.insertTeams(event);
+    this.insertMarkets(event);
+    this.insertScore(event);
+
+    log.info("Event {} inserted", event.getEventId());
+    return EventPersistenceOutcome.PERSISTED;
+  }
 }
